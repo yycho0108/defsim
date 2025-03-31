@@ -3,9 +3,9 @@
 from dataclasses import dataclass
 import numpy as np
 
-from ds.config import oc_cli, zen_cli
-from ds.common import ObjectState, SimState
-from ds.render import Config, simulate
+from ds.infra.config import oc_cli, zen_cli
+from ds.infra.common import ObjectState, SimState
+from ds.infra.render import Config, simulate
 
 
 @dataclass
