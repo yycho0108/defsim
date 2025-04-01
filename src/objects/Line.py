@@ -8,20 +8,22 @@ from .Object import Object
 class Line(Object):
     """
     init Plaane
-        center: numpy array [x, y]
+        center: tuple (x, y)
             center of the line
-        normal: numpy array [x, y]
+        normal: tuple (x, y)
             normal of the line
         color: tuple(r, g, b), optional
             rgb color of the circle, range[0-1]
     """
     def __init__(self, center, normal=(0,1), L=1000, color=(1,1,1), drest=0.001):
         self.center = np.array(center, dtype=np.float32)
-        normv = np.array(normal, dtype=np.float32)
-        self.normal = normv / np.linalg.norm(normv)
+        self.normal = np.array(normal, dtype=np.float32)
+        self.normal = self.normal / np.linalg.norm(self.normal)
         self.color = color
         self.drest = drest
         self.L = L
+        
+        self.line_shape = None
 
     """
     @OVERRIDE
@@ -29,26 +31,27 @@ class Line(Object):
         scene: pyglet.graphics.Batch
             the scene object
     """
-    def draw(self, scene):
-        scale = 300.0
-        offset_x = 400.0
-        offset_y = 300.0
-        c255 = tuple(int(c*255) for c in self.color)
-
-        # a very long line, passing "center", perpendicular to normal
+    def draw(self, scene, scale):
         perp = np.array([self.normal[1], -self.normal[0]], dtype=np.float32)
         p1 = self.center + perp*(self.L*0.5)
         p2 = self.center - perp*(self.L*0.5)
-
-        line_shape = shapes.Line(
-            x=p1[0]*scale+offset_x,
-            y=p1[1]*scale+offset_y,
-            x2=p2[0]*scale+offset_x,
-            y2=p2[1]*scale+offset_y,
-            width=2,
-            color=c255,
-            batch=scene
-        )
+        
+        if self.line_shape is None:
+            c255 = tuple(int(c*255) for c in self.color)
+            self.line_shape = shapes.Line(
+                x=p1[0]*scale,
+                y=p1[1]*scale,
+                x2=p2[0]*scale,
+                y2=p2[1]*scale,
+                width=2,
+                color=c255,
+                batch=scene
+            )
+        else:
+            self.line_shape.x = p1[0]*scale
+            self.line_shape.y = p1[1]*scale
+            self.line_shape.x2 = p2[0]*scale
+            self.line_shape.y2 = p2[1]*scale
 
     """
     @OVERRIDE

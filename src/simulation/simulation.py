@@ -16,7 +16,7 @@ class Simulation:
         res: tuple(width, height)
             window size in pixels
     """
-    def __init__(self, name, gravity=-10, dt=0.005, res=(800,600), iterations=4, selfCollision=True):
+    def __init__(self, name, gravity=-10, dt=0.005, scale=1500, iterations=4, selfCollision=True):
         # simulation properties
         self.name = name
         self.GRAVITY = gravity
@@ -26,28 +26,20 @@ class Simulation:
         self.selfCollision = selfCollision
 
         # window properties
-        self.WIDTH, self.HEIGHT = res
-        self.window = pyglet.window.Window(self.WIDTH, self.HEIGHT, self.name)
+        self.SCALE = scale
+        self.window = pyglet.window.Window(self.SCALE, self.SCALE, self.name)
 
         # objects on the scene
-        self.lights = []
-        self.cloths = []
+        self.clothes = []
         self.objects = []
+        
+        # Create a Batch to draw the scene
+        self.scene = pyglet.graphics.Batch()
 
         # bind on_draw
         @self.window.event
         def on_draw():
             self.on_draw()
-
-    """
-    add new light to the scene
-        light_pos : tuple(x, y, z)
-            position of the light
-        light_color : tuple(r, g, b) 
-            color of the light, in range [0, 1]
-    """
-    def add_light(self, pos, color=(1,1,1)):
-        self.lights.append((pos, color))
 
     """
     adds object to the scene
@@ -66,7 +58,7 @@ class Simulation:
             cloth Cloth.py
     """
     def add_cloth(self, cloth):
-        self.cloths.append(cloth)
+        self.clothes.append(cloth)
 
     """
     CORE PDB algorithm
@@ -88,36 +80,24 @@ class Simulation:
 
     def update(self, dt):
         # Update each cloth object
-        for c in self.cloths:
+        for c in self.clothes:
             self.update_cloth(c)
 
         # Redraw the scene in the next frame
-        self.window.dispatch_event('on_draw')
 
     def on_draw(self):
         self.window.clear()
 
-        # Create a Batch to draw the scene
-        scene = pyglet.graphics.Batch()
-
-        # Draw lights as small circles
-        for lpos, lcolor in self.lights:
-            col255 = (int(lcolor[0]*255), int(lcolor[1]*255), int(lcolor[2]*255))
-            light_circle = pyglet.shapes.Circle(
-                x=int(lpos[0] * self.WIDTH), y=int(lpos[1] * self.HEIGHT), radius=5,
-                color=col255, batch=scene
-            )
-
         # Draw all objects
         for obj in self.objects:
-            obj.draw(scene)
+            obj.draw(self.scene, self.SCALE)
 
-        # Draw all cloths
-        for cloth in self.cloths:
-            cloth.draw(scene)
+        # Draw all clothes
+        for cloth in self.clothes:
+            cloth.draw(self.scene, self.SCALE)
 
         # Render the complete scene
-        scene.draw()
+        self.scene.draw()
 
     def run(self):
         # Schedule the update function
