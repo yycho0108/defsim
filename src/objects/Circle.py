@@ -20,8 +20,6 @@ class Circle(Object):
         self.radius = radius
         self.color = color
         self.drest = drest
-        
-        self.circle_shape = None
 
     """
     @OVERRIDE
@@ -32,7 +30,7 @@ class Circle(Object):
     def draw(self, scene, scale):
         x, y = self.center
         
-        if self.circle_shape is None:
+        if not hasattr(self, 'circle_shape'):
             r255 = tuple(int(c * 255) for c in self.color)
             self.circle_shape = shapes.Circle(
                 x=x*scale,

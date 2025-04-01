@@ -5,17 +5,16 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 from simulation.simulation import Simulation
-from clothes.GridCloth import GridCloth
+from clothes.Cloth import Cloth
 from objects.Circle import Circle
 from objects.Line import Line
-from objects.Square import Square
 
 def main():
-    sim = Simulation("test", dt=0.01, iterations=3)
+    sim = Simulation("test", dt=0.02, iterations=3)
     
     # add cloth
-    cloth = GridCloth(N=(32, 32), S=(0.5, 0.5), KS=1, KB=0.2, KC=1, center=(0, 0, 0.01))
-    sim.add_object(cloth)
+    cloth = Cloth(num=(10, 10), spacing=0.01, origin=(0.5, 0.5), KS=0.9, KC=1)
+    sim.add_cloth(cloth)
 
     # add circle
     circle = Circle(center=(0.0, 0.3), radius=0.1, color=(1,0,0), drest=0.005)
