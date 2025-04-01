@@ -16,7 +16,7 @@ class Simulation:
         res: tuple(width, height)
             window size in pixels
     """
-    def __init__(self, name, gravity=-10, dt=0.01, res=(800,600), iterations=4, selfCollision=False):
+    def __init__(self, name, gravity=-10, dt=0.005, res=(800,600), iterations=4, selfCollision=True):
         # simulation properties
         self.name = name
         self.GRAVITY = gravity
@@ -24,24 +24,21 @@ class Simulation:
         self.NUM_ITERATIONS = iterations
         self.WIND = np.array([0.0, 0.0], dtype=np.float32)
         self.selfCollision = selfCollision
-        
+
         # window properties
         self.WIDTH, self.HEIGHT = res
         self.window = pyglet.window.Window(self.WIDTH, self.HEIGHT, self.name)
 
-        # objects of the scene
+        # objects on the scene
         self.lights = []
         self.cloths = []
         self.objects = []
-        
-        # we'll do our rendering in on_draw callback
+
+        # bind on_draw
         @self.window.event
         def on_draw():
             self.on_draw()
 
-        # scene update scheduling
-        pyglet.clock.schedule_interval(self.update, 1.0/60.0)
-        
     """
     add new light to the scene
         light_pos : tuple(x, y, z)
@@ -51,7 +48,7 @@ class Simulation:
     """
     def add_light(self, pos, color=(1,1,1)):
         self.lights.append((pos, color))
-        
+
     """
     adds object to the scene
         obj: Object
@@ -59,10 +56,10 @@ class Simulation:
     """
     def add_object(self, obj):
         self.objects.append(obj)
-        
+    
     def set_wind(self, force):
-        self.WIND = force
-        
+        self.WIND = np.array(force, dtype=np.float32)
+
     """
     adds object to the scene
         cloth: Cloth
@@ -72,38 +69,58 @@ class Simulation:
         self.cloths.append(cloth)
 
     """
-    CORE PBD algorithm
+    CORE PDB algorithm
     """
-    def update_cloth(self, cloth):
-        cloth.external_forces(self.GRAVITY, self.WIND, self.DT)
-        cloth.step(collision_objects=self.objects)
+    def update_cloth(self, c):
+        c.external_forces(self.GRAVITY, self.WIND, self.DT)
+        
+        c.make_predictions(self.DT)
+        
+        for i in range(self.NUM_ITERATIONS):
+            for o in self.objects:
+                c.solve_collision_constraints(o)
+            c.solve_stretch_constraints(self.NUM_ITERATIONS)
+            c.solve_bending_constraints(self.NUM_ITERATIONS)
+            if self.selfCollision:
+                c.solve_self_collision_constraints(self.NUM_ITERATIONS)
+                
+        c.apply_correction(self.DT)
 
     def update(self, dt):
+        # Update each cloth object
         for c in self.cloths:
             self.update_cloth(c)
-    
-        def on_draw(self):
-            self.window.clear()
-            
+
+        # Redraw the scene in the next frame
+        self.window.dispatch_event('on_draw')
+
+    def on_draw(self):
+        self.window.clear()
+
+        # Create a Batch to draw the scene
         scene = pyglet.graphics.Batch()
-        
-        for l in self.lights:
-            light = pyglet.shapes.Circle(
-                x=l[0][0], y=l[0][1], radius=5,
-                color=(255, 255, 0), batch=scene
+
+        # Draw lights as small circles
+        for lpos, lcolor in self.lights:
+            col255 = (int(lcolor[0]*255), int(lcolor[1]*255), int(lcolor[2]*255))
+            light_circle = pyglet.shapes.Circle(
+                x=int(lpos[0] * self.WIDTH), y=int(lpos[1] * self.HEIGHT), radius=5,
+                color=col255, batch=scene
             )
-            light.draw()
 
-        for o in self.objects:
-            o.draw(scene)
+        # Draw all objects
+        for obj in self.objects:
+            obj.draw(scene)
 
-        for c in self.cloths:
-            c.draw(scene)
+        # Draw all cloths
+        for cloth in self.cloths:
+            cloth.draw(scene)
 
+        # Render the complete scene
         scene.draw()
 
-    """
-    runs the simulation
-    """
     def run(self):
+        # Schedule the update function
+        pyglet.clock.schedule_interval(self.update, 1.0/60.0)
+        # Start the Pyglet application loop
         pyglet.app.run()

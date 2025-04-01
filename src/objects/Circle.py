@@ -3,13 +3,9 @@
 import numpy as np
 import pyglet
 from pyglet import shapes
-from objects.Object import Object
+from .Object import Object
 
 class Circle(Object):
-    """
-    2D circle for collision detection.
-    """
-    
     """
     init Circle
         center: numpy array [x, y]
@@ -19,7 +15,7 @@ class Circle(Object):
         color: tuple(r, g, b), optional
             rgb color of the circle, range[0-1]
     """
-    def __init__(self, center, radius, color=(1, 1, 1), drest=0.001):
+    def __init__(self, center, radius, color=(1, 1, 1), drest=0.01):
         self.center = np.array(center, dtype=np.float32)
         self.radius = radius
         self.color = color
@@ -38,19 +34,15 @@ class Circle(Object):
         offset_y = 300.0
 
         x, y = self.center
-        r = self.radius
-        r255 = tuple(int(c * 255) for c in self.color)  # convert (0-1) to (0-255)
-
-        # pyglet.shapes.Circle requires a batch if we want to group drawing
+        r255 = tuple(int(c * 255) for c in self.color)
         circle_shape = shapes.Circle(
             x=x*scale + offset_x,
             y=y*scale + offset_y,
-            radius=r*scale,
+            radius=self.radius*scale,
             color=r255,
             batch=scene
         )
-        # Note: shapes.Circle will be drawn automatically when scene.draw() is called
-
+    
     """
     @OVERRIDE
     solves the collision constraint for a point p
@@ -59,12 +51,28 @@ class Circle(Object):
     """
     def solve_collision_constraint(self, p, x):
         cp = p - self.center
-        dist = np.linalg.norm(cp)
-        boundary = self.radius + self.drest
-
-        if dist < boundary:
-            # push out along the normal
-            n = cp / (dist + 1e-8)
-            correction = (boundary - dist) * n
-            return correction
-        return np.array([0.0, 0.0], dtype=np.float32)
+        res = 0
+        if np.linalg.norm(cp) < (self.radius + self.drest):
+            if np.linalg.norm(x - self.center) < (self.radius + self.drest):
+                n = cp / np.linalg.norm(cp)
+                res = (self.radius + self.drest - np.linalg.norm(cp)) * n
+            
+            else:
+                d = p - x
+                oc = x - self.center
+                a = d.dot(d)
+                b = 2.0 * oc.dot(d)
+                c = oc.dot(oc) - (self.radius + self.drest) * (self.radius + self.drest)
+                
+                t = 0
+                disc = b * b - 4 * a * c
+                if disc > 0:
+                    t = (-b - np.sqrt(disc)) / (2 * a)
+                    
+                collision_point = x + t * d
+                n = collision_point - self.center
+                n = n / np.linalg.norm(n)
+                
+                C = np.dot((p - collision_point), n) - self.drest
+                res = - C * n
+        return res

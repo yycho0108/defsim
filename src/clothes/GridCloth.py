@@ -56,7 +56,7 @@ class GridCloth:
 
     def init_scene(self):
         """
-        Initialize the cloth as a 2D grid in the XY plane.
+        Initialize the cloth as a 2D grid in the XY line.
         """
         dx = self.sx / (self.nx - 1) if self.nx > 1 else 0.0
         dy = self.sy / (self.ny - 1) if self.ny > 1 else 0.0
