@@ -2,16 +2,12 @@
 
 import sys
 import os
-
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PARENT_DIR = os.path.join(CURRENT_DIR, '..')
-SRC_DIR = os.path.join(PARENT_DIR, 'src')
-if SRC_DIR not in sys.path:
-    sys.path.append(SRC_DIR)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 from simulation import Simulation
-from clothes.cloth import Cloth
-from objects.plane import Plane
+from clothes.grid_cloth import GridCloth
+from objects.Circle import Circle
+from objects.Plane import Plane
 
 def main():
     sim = Simulation(name="WindDemo", res=(800, 600), dt=0.01, gravity=-0.9)

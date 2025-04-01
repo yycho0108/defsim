@@ -1,7 +1,7 @@
-# src/objects/box.py
+# src/objects/Box.py
 
 import numpy as np
-from .object import Object
+from objects.Object import Object
 
 class Box(Object):
     """
@@ -14,7 +14,7 @@ class Box(Object):
         self.half_h = height / 2
         self.drest = drest
 
-    def solve_collision_constraint(self, p, old_p):
+    def solve_collision_constraint(self, p, x):
         # Convert p to box local space where box center = (0,0)
         local_p = p - self.center
 
