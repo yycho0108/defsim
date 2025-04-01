@@ -1,72 +1,109 @@
 # src/simulation/simulation.py
 
+import numpy as np
 import pyglet
 from pyglet.gl import GL_LINES
 
 class Simulation:
     """
-    A flexible 2D PBD simulation class that can handle multiple cloths, objects, lights, etc.
+    new simulation
+        name: string
+            name of the simulation
+        gravity: float
+            gravity < 0
+        dt: float
+            time step size used in the simulation
+        res: tuple(width, height)
+            window size in pixels
     """
-
-    def __init__(self, name="Simulation", res=(800, 600), dt=0.01, gravity=-9.8):
+    def __init__(self, name, gravity=-10, dt=0.01, res=(800,600), iterations=4, selfCollision=False):
+        # simulation properties
         self.name = name
-        self.width, self.height = res
-        self.dt = dt
-        self.gravity = gravity
+        self.GRAVITY = gravity
+        self.DT = dt
+        self.NUM_ITERATIONS = iterations
+        self.WIND = np.array([0.0, 0.0], dtype=np.float32)
+        self.selfCollision = selfCollision
+        
+        # window properties
+        self.WIDTH, self.HEIGHT = res
+        self.window = pyglet.window.Window(self.WIDTH, self.HEIGHT, self.name)
 
-        # store cloths and objects
+        # objects of the scene
+        self.lights = []
         self.cloths = []
         self.objects = []
-
-        # create a pyglet window
-        self.window = pyglet.window.Window(
-            width=self.width,
-            height=self.height,
-            caption=self.name
-        )
-
+        
+        # we'll do our rendering in on_draw callback
         @self.window.event
         def on_draw():
-            self.window.clear()
-            batch = pyglet.graphics.Batch()
+            self.on_draw()
 
-            # draw cloths
-            for cloth in self.cloths:
-                cloth.draw(batch)
-
-            # if objects themselves have some draw method, we could also call it here
-            # e.g. for debugging or visuals
-
-            batch.draw()
-
-        # schedule the update
+        # scene update scheduling
         pyglet.clock.schedule_interval(self.update, 1.0/60.0)
-
-    def set_wind(self, wind):
-        """
-        Sets wind for all cloths. If you want different wind per cloth,
-        call cloth.set_wind(...) individually.
-        """
-        for c in self.cloths:
-            c.set_wind(wind)
-
+        
+    """
+    add new light to the scene
+        light_pos : tuple(x, y, z)
+            position of the light
+        light_color : tuple(r, g, b) 
+            color of the light, in range [0, 1]
+    """
+    def add_light(self, pos, color=(1,1,1)):
+        self.lights.append((pos, color))
+        
+    """
+    adds object to the scene
+        obj: Object
+            scene object Object.py
+    """
+    def add_object(self, obj):
+        self.objects.append(obj)
+        
+    def set_wind(self, force):
+        self.WIND = force
+        
+    """
+    adds object to the scene
+        cloth: Cloth
+            cloth Cloth.py
+    """
     def add_cloth(self, cloth):
         self.cloths.append(cloth)
 
-    def add_object(self, obj):
-        """
-        Register an object so all cloths can collide with it.
-        """
-        self.objects.append(obj)
+    """
+    CORE PBD algorithm
+    """
+    def update_cloth(self, cloth):
+        cloth.external_forces(self.GRAVITY, self.WIND, self.DT)
+        cloth.step(collision_objects=self.objects)
 
     def update(self, dt):
-        """
-        Each frame, step cloths and handle collisions with objects.
-        """
-        for cloth in self.cloths:
-            # update the cloth's collision object list from our simulation
-            cloth.collision_objects = self.objects
-            cloth.step(substeps=3)
+        for c in self.cloths:
+            self.update_cloth(c)
+    
+        def on_draw(self):
+            self.window.clear()
+            
+        scene = pyglet.graphics.Batch()
+        
+        for l in self.lights:
+            light = pyglet.shapes.Circle(
+                x=l[0][0], y=l[0][1], radius=5,
+                color=(255, 255, 0), batch=scene
+            )
+            light.draw()
 
+        for o in self.objects:
+            o.draw(scene)
+
+        for c in self.cloths:
+            c.draw(scene)
+
+        scene.draw()
+
+    """
+    runs the simulation
+    """
     def run(self):
         pyglet.app.run()
