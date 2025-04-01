@@ -22,8 +22,6 @@ class Line(Object):
         self.color = color
         self.drest = drest
         self.L = L
-        
-        self.line_shape = None
 
     """
     @OVERRIDE
@@ -36,14 +34,14 @@ class Line(Object):
         p1 = self.center + perp*(self.L*0.5)
         p2 = self.center - perp*(self.L*0.5)
         
-        if self.line_shape is None:
+        if not hasattr(self, 'line_shape'):
             c255 = tuple(int(c*255) for c in self.color)
             self.line_shape = shapes.Line(
                 x=p1[0]*scale,
                 y=p1[1]*scale,
                 x2=p2[0]*scale,
                 y2=p2[1]*scale,
-                width=2,
+                width=5,
                 color=c255,
                 batch=scene
             )

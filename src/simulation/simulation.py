@@ -71,10 +71,10 @@ class Simulation:
         for i in range(self.NUM_ITERATIONS):
             for o in self.objects:
                 c.solve_collision_constraints(o)
-            c.solve_stretch_constraints(self.NUM_ITERATIONS)
-            c.solve_bending_constraints(self.NUM_ITERATIONS)
-            if self.selfCollision:
-                c.solve_self_collision_constraints(self.NUM_ITERATIONS)
+            c.solve_stretching_constraint(self.NUM_ITERATIONS)
+            # c.solve_bending_constraints(self.NUM_ITERATIONS)
+            # if self.selfCollision:
+            #     c.solve_self_collision_constraints(self.NUM_ITERATIONS)
                 
         c.apply_correction(self.DT)
 
@@ -82,8 +82,6 @@ class Simulation:
         # Update each cloth object
         for c in self.clothes:
             self.update_cloth(c)
-
-        # Redraw the scene in the next frame
 
     def on_draw(self):
         self.window.clear()

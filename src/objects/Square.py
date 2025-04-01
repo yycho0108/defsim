@@ -36,8 +36,6 @@ class Square(Object):
         
         self.rotation = rotation
         self.R = make_rotation_matrix(self.rotation)
-        
-        self.square_shape = None
 
     """
     @OVERRIDE
@@ -49,7 +47,7 @@ class Square(Object):
         cx, cy = self.center
         half_w, half_h = self.size[0]/2, self.size[1]/2
         
-        if self.square_shape is None:
+        if not hasattr(self, 'square_shape'):
             c255 = tuple(int(c*255) for c in self.color)
             self.square_shape = shapes.Rectangle(
                 x=(cx - half_w)*scale,
