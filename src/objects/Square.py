@@ -28,7 +28,7 @@ class Square(Object):
         rotation : float
             counter clockwise rotation in degrees
     """
-    def __init__(self, center, size, color=(1,1,1), drest=0.01, rotation=0.0):
+    def __init__(self, center, size, color=(0, 0, 0), drest=0.01, rotation=0.0):
         self.center = np.array(center, dtype=np.float32)
         self.size = size
         self.color = color
@@ -43,24 +43,24 @@ class Square(Object):
         scene: pyglet.graphics.Batch
             the scene object
     """
-    def draw(self, scene, scale):
+    def draw(self, scene, scale, offset):
         cx, cy = self.center
         half_w, half_h = self.size[0]/2, self.size[1]/2
         
         if not hasattr(self, 'square_shape'):
-            c255 = tuple(int(c*255) for c in self.color)
+            c255 = tuple(int(c * 255) for c in self.color)
             self.square_shape = shapes.Rectangle(
-                x=(cx - half_w)*scale,
-                y=(cy - half_h)*scale,
-                width=self.size[0]*scale,
-                height=self.size[1]*scale,
-                color=c255,
-                batch=scene
+                x = (cx - half_w) * scale + offset,
+                y = (cy - half_h) * scale + offset,
+                width = self.size[0] * scale,
+                height = self.size[1] * scale,
+                color = c255,
+                batch = scene
             )
             self.square_shape.rotation = -self.rotation
         else:
-            self.square_shape.x = (cx - half_w)*scale
-            self.square_shape.y = (cy - half_h)*scale
+            self.square_shape.x = (cx - half_w) * scale + offset
+            self.square_shape.y = (cy - half_h) * scale + offset
 
     """
     @OVERRIDE
