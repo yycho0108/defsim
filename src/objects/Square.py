@@ -19,12 +19,14 @@ def make_rotation_matrix(angle_radians):
 class Square(Object):
     """
     inits a Square
-        center : numpy array [x, y]
+        center : tuple (x, y)
             center of the square
-        size : numpy array [width, height]
+        size : tuple (width, height)
             contains x size, y size of the square
         color : tuple(r, g, b) , optional
             rgb color of the square
+        rotation : float
+            counter clockwise rotation in degrees
     """
     def __init__(self, center, size, color=(1,1,1), drest=0.01, rotation=0.0):
         self.center = np.array(center, dtype=np.float32)
@@ -34,6 +36,8 @@ class Square(Object):
         
         self.rotation = rotation
         self.R = make_rotation_matrix(self.rotation)
+        
+        self.square_shape = None
 
     """
     @OVERRIDE
@@ -41,22 +45,24 @@ class Square(Object):
         scene: pyglet.graphics.Batch
             the scene object
     """
-    def draw(self, scene):
-        scale = 300.0
-        offset_x = 400.0
-        offset_y = 300.0
-
+    def draw(self, scene, scale):
         cx, cy = self.center
-        c255 = tuple(int(c*255) for c in self.color)
-        rect_shape = shapes.Rectangle(
-            x=(cx - self.half_w)*scale + offset_x,
-            y=(cy - self.half_h)*scale + offset_y,
-            width=self.width*scale,
-            height=self.height*scale,
-            color=c255,
-            batch=scene
-        )
-        rect_shape.rotation = self.rotation
+        half_w, half_h = self.size[0]/2, self.size[1]/2
+        
+        if self.square_shape is None:
+            c255 = tuple(int(c*255) for c in self.color)
+            self.square_shape = shapes.Rectangle(
+                x=(cx - half_w)*scale,
+                y=(cy - half_h)*scale,
+                width=self.size[0]*scale,
+                height=self.size[1]*scale,
+                color=c255,
+                batch=scene
+            )
+            self.square_shape.rotation = -self.rotation
+        else:
+            self.square_shape.x = (cx - half_w)*scale
+            self.square_shape.y = (cy - half_h)*scale
 
     """
     @OVERRIDE

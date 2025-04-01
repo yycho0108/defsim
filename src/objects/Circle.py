@@ -8,7 +8,7 @@ from .Object import Object
 class Circle(Object):
     """
     init Circle
-        center: numpy array [x, y]
+        center: tuple (x, y)
             center of the circle
         radius: float
             radius of the circle
@@ -20,6 +20,8 @@ class Circle(Object):
         self.radius = radius
         self.color = color
         self.drest = drest
+        
+        self.circle_shape = None
 
     """
     @OVERRIDE
@@ -27,21 +29,22 @@ class Circle(Object):
         scene: pyglet.graphics.Batch
             the scene object
     """
-    def draw(self, scene):
-        # scaling to visualize
-        scale = 300.0
-        offset_x = 400.0
-        offset_y = 300.0
-
+    def draw(self, scene, scale):
         x, y = self.center
-        r255 = tuple(int(c * 255) for c in self.color)
-        circle_shape = shapes.Circle(
-            x=x*scale + offset_x,
-            y=y*scale + offset_y,
-            radius=self.radius*scale,
-            color=r255,
-            batch=scene
-        )
+        
+        if self.circle_shape is None:
+            r255 = tuple(int(c * 255) for c in self.color)
+            self.circle_shape = shapes.Circle(
+                x=x*scale,
+                y=y*scale,
+                radius=self.radius*scale,
+                color=r255,
+                batch=scene
+            )
+        else:
+            self.circle_shape.x = x * scale
+            self.circle_shape.y = y * scale
+            self.circle_shape.radius = self.radius * scale
     
     """
     @OVERRIDE
