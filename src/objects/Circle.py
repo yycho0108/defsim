@@ -15,7 +15,7 @@ class Circle(Object):
         color: tuple(r, g, b), optional
             rgb color of the circle, range[0-1]
     """
-    def __init__(self, center, radius, color=(1, 1, 1), drest=0.01):
+    def __init__(self, center, radius, color=(0, 0, 0), drest=0.01):
         self.center = np.array(center, dtype=np.float32)
         self.radius = radius
         self.color = color
@@ -27,22 +27,21 @@ class Circle(Object):
         scene: pyglet.graphics.Batch
             the scene object
     """
-    def draw(self, scene, scale):
+    def draw(self, scene, scale, offset):
         x, y = self.center
         
         if not hasattr(self, 'circle_shape'):
             r255 = tuple(int(c * 255) for c in self.color)
             self.circle_shape = shapes.Circle(
-                x=x*scale,
-                y=y*scale,
-                radius=self.radius*scale,
-                color=r255,
-                batch=scene
+                x = x * scale + offset,
+                y = y * scale + offset,
+                radius = self.radius * scale,
+                color = r255,
+                batch = scene
             )
         else:
-            self.circle_shape.x = x * scale
-            self.circle_shape.y = y * scale
-            self.circle_shape.radius = self.radius * scale
+            self.circle_shape.x = x * scale + offset
+            self.circle_shape.y = y * scale + offset
     
     """
     @OVERRIDE

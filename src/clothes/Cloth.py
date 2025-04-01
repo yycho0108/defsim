@@ -6,7 +6,7 @@ import pyglet
 from pyglet import shapes
 
 class Cloth:
-    def __init__(self, num, spacing, origin, color=(1,1,1), KS=0.6, KC=0.4, DAMPING=0.9):
+    def __init__(self, num, spacing, origin, color=(0, 0, 0), KS=0.6, KC=0.4, DAMPING=0.9):
         self.num_x = num[0]
         self.num_y = num[1]
         self.spacing = spacing
@@ -27,7 +27,7 @@ class Cloth:
     """
     draws the cloth
     """
-    def draw(self, scene, scale):
+    def draw(self, scene, scale, offset):
         r255 = tuple(int(c * 255) for c in self.color)
         
         if not hasattr(self, 'circle_shapes'):
@@ -36,28 +36,28 @@ class Cloth:
             
             for i in range(self.num_x):
                 for j in range(self.num_y):
-                    x, y = self.x[i, j] * scale
-                    circle = shapes.Circle(x, y, radius=3, color=r255, batch=scene)
+                    x, y = self.x[i, j] * scale + offset
+                    circle = shapes.Circle(x, y, radius=5, color=r255, batch=scene)
                     self.circle_shapes.append(circle)
             
             for (i1, j1), (i2, j2), _ in self.stretch_constraints:
-                x1, y1 = self.x[i1, j1] * scale
-                x2, y2 = self.x[i2, j2] * scale
-                line = shapes.Line(x1, y1, x2, y2, color=r255, batch=scene)
+                x1, y1 = self.x[i1, j1] * scale + offset
+                x2, y2 = self.x[i2, j2] * scale + offset
+                line = shapes.Line(x1, y1, x2, y2, width=3, color=r255, batch=scene)
                 self.line_shapes.append(line)
         
         else:
             idx = 0
             for i in range(self.num_x):
                 for j in range(self.num_y):
-                    x, y = self.x[i, j] * scale
+                    x, y = self.x[i, j] * scale + offset
                     self.circle_shapes[idx].x = x
                     self.circle_shapes[idx].y = y
                     idx += 1
             
             for line_idx, ((i1, j1), (i2, j2), _) in enumerate(self.stretch_constraints):
-                x1, y1 = self.x[i1, j1] * scale
-                x2, y2 = self.x[i2, j2] * scale
+                x1, y1 = self.x[i1, j1] * scale + offset
+                x2, y2 = self.x[i2, j2] * scale + offset
                 self.line_shapes[line_idx].x = x1
                 self.line_shapes[line_idx].y = y1
                 self.line_shapes[line_idx].x2 = x2
@@ -66,7 +66,7 @@ class Cloth:
     def reset_pos(self):
         for i in range(self.num_x):
             for j in range(self.num_y):
-                self.x[i, j] = self.origin + np.array([i * self.spacing, -j * self.spacing])
+                self.x[i, j] = self.origin + np.array([i * self.spacing, j * self.spacing]) - np.array([self.num_x * self.spacing / 2, self.num_y * self.spacing / 2])
                 self.p[i, j] = self.x[i, j]
                 self.v[i, j] = np.zeros(2, dtype=np.float32)
 
@@ -89,24 +89,24 @@ class Cloth:
         for i in range(self.num_x):
             for j in range(self.num_y):
                 if i < self.num_x - 1:
-                    p1 = self.p[i, j]
-                    p2 = self.p[i+1, j]
+                    p1 = self.x[i, j]
+                    p2 = self.x[i+1, j]
                     rest_len = np.linalg.norm(p2 - p1)
                     self.stretch_constraints.append(((i, j), (i+1, j), rest_len))
                 if j < self.num_y - 1:
-                    p1 = self.p[i, j]
-                    p2 = self.p[i, j+1]
+                    p1 = self.x[i, j]
+                    p2 = self.x[i, j+1]
                     rest_len = np.linalg.norm(p2 - p1)
                     self.stretch_constraints.append(((i, j), (i, j+1), rest_len))
                 # Diagonal constraints for shape preservation
                 if i < self.num_x - 1 and j < self.num_y - 1:
-                    p1 = self.p[i, j]
-                    p2 = self.p[i+1, j+1]
+                    p1 = self.x[i, j]
+                    p2 = self.x[i+1, j+1]
                     rest_len = np.linalg.norm(p2 - p1)
                     self.stretch_constraints.append(((i, j), (i+1, j+1), rest_len))
                 if i < self.num_x - 1 and j > 0:
-                    p1 = self.p[i, j]
-                    p2 = self.p[i+1, j-1]
+                    p1 = self.x[i, j]
+                    p2 = self.x[i+1, j-1]
                     rest_len = np.linalg.norm(p2 - p1)
                     self.stretch_constraints.append(((i, j), (i+1, j-1), rest_len))
 
@@ -118,15 +118,13 @@ class Cloth:
             p2 = self.p[i2, j2]
             
             delta = p2 - p1
-            l = np.linalg.norm(delta)
-            if l == 0:
-                continue
-            n = (l - rest_len) / l
+            curr_len = np.linalg.norm(delta)
+            n = delta / curr_len
             
-            lagrange = (l - rest_len) / 2
+            lagrange = (curr_len - rest_len) / 2
             
-            self.p[i1] -= KS * lagrange * n
-            self.p[i2] += KS * lagrange * n
+            self.p[i1, j1] += KS * lagrange * n
+            self.p[i2, j2] -= KS * lagrange * n
 
     def solve_collision_constraints(self, obj):
         for i in range(self.num_x):
@@ -135,5 +133,4 @@ class Cloth:
                 x = self.x[i, j]
                 
                 corr = obj.solve_collision_constraint(p, x)
-                print(corr)
-                self.p[i] += self.KC * corr
+                self.p[i, j] += self.KC * corr

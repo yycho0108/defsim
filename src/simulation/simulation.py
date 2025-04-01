@@ -16,7 +16,7 @@ class Simulation:
         res: tuple(width, height)
             window size in pixels
     """
-    def __init__(self, name, gravity=-10, dt=0.005, scale=1500, iterations=4, selfCollision=True):
+    def __init__(self, name, gravity=-10, dt=0.005, window_size=1500, world_size=2.0, iterations=4, selfCollision=True):
         # simulation properties
         self.name = name
         self.GRAVITY = gravity
@@ -26,8 +26,11 @@ class Simulation:
         self.selfCollision = selfCollision
 
         # window properties
-        self.SCALE = scale
-        self.window = pyglet.window.Window(self.SCALE, self.SCALE, self.name)
+        self.world_size = world_size
+        self.scale = window_size / world_size
+        self.offset = window_size // 2
+        self.window = pyglet.window.Window(window_size, window_size, self.name)
+        pyglet.gl.glClearColor(1,1,1,1)
 
         # objects on the scene
         self.clothes = []
@@ -88,11 +91,11 @@ class Simulation:
 
         # Draw all objects
         for obj in self.objects:
-            obj.draw(self.scene, self.SCALE)
+            obj.draw(self.scene, self.scale, self.offset)
 
         # Draw all clothes
         for cloth in self.clothes:
-            cloth.draw(self.scene, self.SCALE)
+            cloth.draw(self.scene, self.scale, self.offset)
 
         # Render the complete scene
         self.scene.draw()
