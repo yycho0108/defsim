@@ -1,192 +1,180 @@
-# src/clothes/grid_cloth.py
+# grid_cloth.py
 
 import numpy as np
-import pyglet
-from pyglet.gl import GL_LINES
+from .cloth import Cloth
 
-class GridCloth:
+class GridCloth(Cloth):
     """
-    2D cloth in a grid arrangement, mimicking the old code's structure.
+    2D cloth in a grid arrangement, similar to the old GridCloth code.
     """
 
     def __init__(
         self,
-        N=(20, 20),
-        cell_size=(0.5, 0.5),
-        gravity=-9.8,
-        dt=0.01,
-        wind=(0.0, 0.0),
-        color=(0.5, 0.5, 0.5),
-        stiffness=0.6,
-        damping=0.99,
-        center=(0.0, 0.0),
+        N=(64,64),
+        S=(1,1),
+        W=1.0,
+        KS=0.6,
+        KB=0.4,
+        KC=0.4,
+        KD=0.0,
+        KL=0.0,
+        DAMPING=0.9,
+        center=(0.0,0.0,0.0),
+        color=(1,1,1)
     ):
         """
         N: (nx, ny)
-        cell_size: (sx, sy)
-        gravity: float
-        dt: float
-        wind: (wx, wy)
-        color: (r,g,b) in [0,1]
-        stiffness: stretching stiffness
-        damping: velocity damping factor
-        center: grid center
+        S: (size_x, size_y)
+        W: total weight, distributed among vertices
+        KS, KB, KC, KD, KL, DAMPING as in the old code
+        center: cloth center in (x,y,z) - default z=0
+        color: (r,g,b)
         """
         self.nx, self.ny = N
-        self.sx, self.sy = cell_size
-        self.gravity = gravity
-        self.dt = dt
-        self.wind = np.array(wind, dtype=np.float32)
-        self.color = color
-        self.stiffness = stiffness
-        self.damping = damping
+        self.Sx, self.Sy = S
         self.center = np.array(center, dtype=np.float32)
 
-        # positions & velocities
-        self.positions = np.zeros((self.nx*self.ny, 2), dtype=np.float32)
-        self.velocities = np.zeros((self.nx*self.ny, 2), dtype=np.float32)
-        self.fixed = np.zeros((self.nx*self.ny,), dtype=np.int32)
+        self.W = W
+        self.KS = KS
+        self.KB = KB
+        self.KC = KC
+        self.KD = KD
+        self.KL = KL
+        self.DAMPING = DAMPING
+        self.color = color
 
-        # edges
-        self.edges = []
-        self.rest_lengths = []
+        # build Nx x Ny grid of positions
+        # store in Nx*Ny x 3
+        pos_2d, vel_2d = self._make_grid()
+        # flatten
+        positions = pos_2d.reshape((-1,3))
+        velocities = vel_2d.reshape((-1,3))
 
-        # initialize scene
-        self.init_scene()
-
-    def init_scene(self):
-        """
-        Initialize the cloth as a 2D grid in the XY line.
-        """
-        dx = self.sx / (self.nx - 1) if self.nx > 1 else 0.0
-        dy = self.sy / (self.ny - 1) if self.ny > 1 else 0.0
-
-        for i in range(self.nx):
-            for j in range(self.ny):
-                idx = i*self.ny + j
-                x = self.center[0] + (i * dx - self.sx*0.5)
-                y = self.center[1] + (j * dy - self.sy*0.5)
-                self.positions[idx] = [x, y]
-                self.velocities[idx] = [0.0, 0.0]
-
+        # build indices
+        indices = self._make_indices()
         # build edges
+        edges = self._make_edges()
+        # build tripairs
+        tripairs = self._make_tripairs()
+
+        # build weight array
+        weight = np.ones((self.nx*self.ny,), dtype=np.float32)*(W/(self.nx*self.ny))
+
+        # init super
+        super().__init__(
+            V=self.nx*self.ny,
+            POSITIONS=positions,
+            VELOCITIES=velocities,
+            WEIGHT=weight,
+            indices=indices,
+            edges=edges,
+            tripairs=tripairs,
+            color=color,
+            KS=KS,
+            KC=KC,
+            KB=KB,
+            KD=KD,
+            KL=KL,
+            DAMPING=DAMPING
+        )
+
+    def _make_grid(self):
+        """
+        returns pos, vel, shape (nx, ny, 3)
+        """
+        pos = np.zeros((self.nx, self.ny, 3), dtype=np.float32)
+        vel = np.zeros((self.nx, self.ny, 3), dtype=np.float32)
+        dx = self.Sx/(self.nx-1) if self.nx>1 else 0.0
+        dy = self.Sy/(self.ny-1) if self.ny>1 else 0.0
+
         for i in range(self.nx):
             for j in range(self.ny):
-                if i+1 < self.nx:
-                    e = (self.index_of(i,j), self.index_of(i+1,j))
-                    self.edges.append(e)
-                if j+1 < self.ny:
-                    e = (self.index_of(i,j), self.index_of(i,j+1))
-                    self.edges.append(e)
+                x = self.center[0] + (i*dx - self.Sx*0.5)
+                y = self.center[1] + (j*dy - self.Sy*0.5)
+                pos[i,j,0] = x
+                pos[i,j,1] = y
+                pos[i,j,2] = self.center[2] # default 0
+                vel[i,j] = (0,0,0)
+        return pos, vel
 
-        # precompute rest lengths
-        for (p1, p2) in self.edges:
-            rest_len = np.linalg.norm(self.positions[p1] - self.positions[p2])
-            self.rest_lengths.append(rest_len)
+    def _make_indices(self):
+        # (nx-1)*(ny-1)*2 tri, each tri => 3 idx => total # => ...
+        tri_count = (self.nx-1)*(self.ny-1)*2
+        indices = np.zeros((tri_count*3,), dtype=np.int32)
 
-    def index_of(self, i, j):
-        return i*self.ny + j
+        idx = 0
+        for i in range(self.nx):
+            for j in range(self.ny):
+                if i<self.nx-1 and j<self.ny-1:
+                    square_id = (i*(self.ny-1))+ j
+                    # 1st tri
+                    i0 = i*self.ny + j
+                    i1 = (i+1)*self.ny + j
+                    i2 = i*self.ny + (j+1)
+                    indices[idx*3+0] = i0
+                    indices[idx*3+1] = i1
+                    indices[idx*3+2] = i2
+                    idx+=1
+                    # 2nd tri
+                    i3 = (i+1)*self.ny + (j+1)
+                    i4 = i*self.ny + (j+1)
+                    i5 = (i+1)*self.ny + j
+                    indices[idx*3+0] = i3
+                    indices[idx*3+1] = i4
+                    indices[idx*3+2] = i5
+                    idx+=1
 
-    def fix_point(self, idx):
-        self.fixed[idx] = 1
+        return indices
 
-    def external_forces(self, gravity, wind, dt):
+    def _make_edges(self):
         """
-        Add external forces: gravity, wind, etc.
+        replicate the logic:
+          if i+1<nx => edge
+          if j+1<ny => edge
+          plus diagonal edges if needed
+        store flatten in pairs
         """
-        for i in range(self.nx*self.ny):
-            if self.fixed[i] == 0:
-                self.velocities[i,1] += gravity * dt
-                self.velocities[i] += wind * dt
-            self.velocities[i] *= self.damping
+        edges_list = []
+        for i in range(self.nx):
+            for j in range(self.ny):
+                if i+1<self.nx:
+                    edges_list.append(i*self.ny+j)
+                    edges_list.append((i+1)*self.ny+j)
+                if j+1<self.ny:
+                    edges_list.append(i*self.ny+j)
+                    edges_list.append(i*self.ny+(j+1))
+                # diagonal?
+                if i+1<self.nx and j+1<self.ny:
+                    edges_list.append(i*self.ny+j)
+                    edges_list.append((i+1)*self.ny+(j+1))
 
-    def step(self, collision_objects=[]):
+                    edges_list.append(i*self.ny+(j+1))
+                    edges_list.append((i+1)*self.ny+j)
+
+        return np.array(edges_list, dtype=np.int32)
+
+    def _make_tripairs(self):
         """
-        One iteration of PBD:
-        1) predict positions
-        2) solve constraints
-        3) update velocities
+        replicate old code logic for bending
+        storing 4 points p1,p2,p3,p4 in sets of 4
+        ...
+        We'll do a minimal approach or replicate logic if needed
         """
-        # predict
-        p_pred = self.positions + self.velocities * self.dt
+        tripair_list=[]
+        for i in range(self.nx):
+            for j in range(self.ny):
+                if i+1<self.nx and j+1<self.ny:
+                    p1 = i*self.ny+j
+                    p2 = (i+1)*self.ny+(j+1)
+                    p3 = i*self.ny+(j+1)
+                    p4 = (i+1)*self.ny+j
+                    tripair_list.extend([p1,p2,p3,p4])
+                # more logic for neighbors if needed ...
+        return np.array(tripair_list, dtype=np.int32)
 
-        # solve stretching
-        p_pred = self.solve_stretch_constraints(p_pred)
-
-        # solve collision
-        p_pred = self.solve_collision(p_pred, collision_objects)
-
-        # update velocity & positions
-        new_vel = (p_pred - self.positions)/self.dt
-        self.velocities = new_vel
-        self.positions = p_pred
-
-        # enforce fixed
-        for i in range(self.nx*self.ny):
-            if self.fixed[i] == 1:
-                self.velocities[i] = 0.0
-
-    def solve_stretch_constraints(self, p_pred):
-        out = p_pred.copy()
-        for e_idx, (p1, p2) in enumerate(self.edges):
-            if self.fixed[p1] == 1 and self.fixed[p2] == 1:
-                continue
-            d = out[p2] - out[p1]
-            dist = np.linalg.norm(d)
-            if dist < 1e-8:
-                continue
-            rest_len = self.rest_lengths[e_idx]
-            diff = dist - rest_len
-            n = d / dist
-            correction = 0.5 * self.stiffness * diff * n
-
-            if self.fixed[p1] == 0:
-                out[p1] += correction
-            if self.fixed[p2] == 0:
-                out[p2] -= correction
-
-        return out
-
-    def solve_collision(self, p_pred, objects):
-        out = p_pred.copy()
-        for i in range(self.nx*self.ny):
-            if self.fixed[i] == 1:
-                continue
-            for obj in objects:
-                corr = obj.solve_collision_constraint(out[i], self.positions[i])
-                out[i] += corr
-        return out
-
-    def draw(self, scene):
+    def _make_weight(self):
         """
-        Draw edges as lines
+        if needed, we do it in the super class
         """
-        scale = 300.0
-        offset_x = 400.0
-        offset_y = 300.0
+        pass
 
-        # color
-        r255 = tuple(int(c * 255) for c in self.color)
-
-        # We'll do a line "by hand" or we can do a shapes.Line
-        # For multiple lines, we can use the underlying batch.add with GL_LINES
-        vertex_data = []
-        for (p1, p2) in self.edges:
-            x1, y1 = self.positions[p1]
-            x2, y2 = self.positions[p2]
-            vertex_data.extend([x1*scale+offset_x, y1*scale+offset_y,
-                                x2*scale+offset_x, y2*scale+offset_y])
-
-        # each edge => 2 vertices => #edges*2
-        vertex_count = len(self.edges)*2
-
-        # GL_LINES = 1
-        scene.add(
-            vertex_count,
-            1,
-            None,
-            ('v2f', vertex_data),
-            # color doesn't come from 'v2f' directly, so we can use shapes.Line
-            # or handle color differently. We'll ignore color or
-            # do a single color override with shape-based approach if needed.
-        )

@@ -1,187 +1,281 @@
-# src/clothes/cloth.py
+# cloth.py
 
 import numpy as np
+from math import sqrt, acos
+import pyglet
+from pyglet.gl import GL_TRIANGLES
 
 class Cloth:
+    def __init__(self, V, POSITIONS, VELOCITIES, WEIGHT, indices, edges, tripairs, color=(1,1,1), KS=0.6, KC=0.4, KB=0.4, KD=0.0, KL=0.0, DAMPING=0.9):
+        self.V = V
+        self.POSITIONS = POSITIONS
+        self.VELOCITIES = VELOCITIES
+        self.indices = indices
+        self.edges = edges
+        self.tripairs = tripairs
+        self.color = color
+        self.KS = KS   # Stretch
+        self.KC = KC   # Collision
+        self.KB = KB   # Bending
+        self.KL = KL   # Lift (?)
+        self.KD = KD   # Drag
+        self.DAMPING = DAMPING
+        self.objs = None
+
+        # keep track
+        self.x = np.zeros((self.V, 3), dtype=np.float32)
+        self.fixed = np.zeros((self.V,), dtype=np.int32)
+        self.nt = np.zeros((self.V,), dtype=np.int32)
+        
+        for j in range(self.indices.shape[0]//3):
+            vi1 = self.indices[j * 3 + 0]
+            vi2 = self.indices[j * 3 + 1]
+            vi3 = self.indices[j * 3 + 2]
+            
+            self.nt[vi1]+=1
+            self.nt[vi2]+=1
+            self.nt[vi3]+=1
+        
+        self.v = np.zeros((self.V, 3), dtype=np.float32)
+        self.dv = np.zeros((self.V, 3), dtype=np.float32)
+        self.np.zeros((self.V, 3), dtype=np.float32)
+        self.WEIGHT = np.copy(WEIGHT)
+
+        self.reset_pos_and_vel()
+
     """
-    2D cloth simulation using PBD constraints (stretch, collision, wind, etc.)
+    sets pos and vel to initial pos
     """
+    def reset_pos_and_vel(self):
+        self.x[:] = self.POSITIONS.copy()
+        self.v[:] = self.VELOCITIES.copy()
 
-    def __init__(
-        self,
-        nx=20,
-        ny=10,
-        size_x=0.8,
-        size_y=0.5,
-        gravity=-9.8,
-        damping=0.99,
-        ks=0.6,
-        kb=0.1,
-        dt=0.01,
-        wind=(0.0, 0.0)
-    ):
-        self.nx = nx
-        self.ny = ny
-        self.size_x = size_x
-        self.size_y = size_y
-
-        self.gravity = gravity
-        self.damping = damping
-        self.ks = ks   # stretch stiffness
-        self.kb = kb   # bending stiffness (not fully used)
-        self.dt = dt
-
-        # wind force (constant for each particle)
-        self.wind = np.array(wind, dtype=np.float32)
-
-        # positions, velocities, and fixed flags
-        self.positions = np.zeros((nx * ny, 2), dtype=np.float32)
-        self.velocities = np.zeros((nx * ny, 2), dtype=np.float32)
-        self.fixed = np.zeros((nx * ny,), dtype=np.int32)
-
-        self.init_positions()
-        self.edges = self.make_edges()
-
-        # rest_lengths for each edge
-        self.rest_lengths = None
-
-        # externally assigned collision objects
-        self.collision_objects = []
-
-    def init_positions(self):
-        # distribute points in a grid
-        dx = self.size_x / (self.nx - 1) if self.nx > 1 else 0.0
-        dy = self.size_y / (self.ny - 1) if self.ny > 1 else 0.0
-
-        idx = 0
-        for i in range(self.nx):
-            for j in range(self.ny):
-                x = i * dx - self.size_x * 0.5
-                y = j * dy
-                self.positions[idx, 0] = x
-                self.positions[idx, 1] = y
-                self.velocities[idx, :] = 0.0
-                idx += 1
-
-        # example: fix top corners
-        self.fix_point(0)
-        self.fix_point(self.ny - 1)
-
-    def index_of(self, i, j):
-        return i * self.ny + j
-
-    def make_edges(self):
-        edge_list = []
-        for i in range(self.nx):
-            for j in range(self.ny):
-                if i + 1 < self.nx:
-                    edge_list.append((self.index_of(i, j), self.index_of(i + 1, j)))
-                if j + 1 < self.ny:
-                    edge_list.append((self.index_of(i, j), self.index_of(i, j + 1)))
-        return edge_list
-
-    def fix_point(self, idx):
-        self.fixed[idx] = 1
-
-    def set_wind(self, wind):
-        """ Allows runtime modification of wind force. """
-        self.wind = np.array(wind, dtype=np.float32)
-
-    def step(self, substeps=5):
-        # 1) external forces and damping
-        #    gravity in y-direction + wind in (x,y)
-        for i in range(self.nx * self.ny):
-            if self.fixed[i] == 0:
-                self.velocities[i, 1] += self.gravity * self.dt  # gravity
-                self.velocities[i] += self.wind * self.dt        # wind
-            self.velocities[i] *= self.damping
-
-        # 2) predict positions
-        p_pred = self.positions + self.velocities * self.dt
-
-        # 3) constraints repeated
-        for _ in range(substeps):
-            p_pred = self.solve_stretch_constraints(p_pred)
-            p_pred = self.solve_collision(p_pred)
-
-        # 4) update velocities and positions
-        new_vel = (p_pred - self.positions) / self.dt
-        self.velocities = new_vel
-        self.positions = p_pred
-
-        # restore fixed points
-        for i in range(self.nx * self.ny):
-            if self.fixed[i] == 1:
-                self.velocities[i, :] = 0.0
-
-    def solve_stretch_constraints(self, p_pred):
-        if self.rest_lengths is None:
-            self.rest_lengths = []
-            for e in self.edges:
-                i1, i2 = e
-                rest_len = np.linalg.norm(self.positions[i1] - self.positions[i2])
-                self.rest_lengths.append(rest_len)
-
-        out = p_pred.copy()
-        for edge_idx, (i1, i2) in enumerate(self.edges):
-            if self.fixed[i1] == 1 and self.fixed[i2] == 1:
-                continue
-
-            rest_len = self.rest_lengths[edge_idx]
-            p1 = out[i1]
-            p2 = out[i2]
-            dir_vec = p2 - p1
-            dist = np.linalg.norm(dir_vec)
-            if dist < 1e-8:
-                continue
-
-            n = dir_vec / dist
-            diff = dist - rest_len
-            correction = 0.5 * self.ks * diff * n
-
-            if self.fixed[i1] == 0:
-                out[i1] += correction
-            if self.fixed[i2] == 0:
-                out[i2] -= correction
-
-        return out
-
-    def solve_collision(self, p_pred):
-        out = p_pred.copy()
-        for i in range(self.nx * self.ny):
-            if self.fixed[i] == 1:
-                continue
-            # check collision with all objects
-            for obj in self.collision_objects:
-                corr = obj.solve_collision_constraint(out[i], self.positions[i])
-                out[i] += corr
-        return out
-
-    def draw(self, batch, group=None):
-        """
-        Draw lines (edges) using pyglet graphics (Batch).
-        """
-        lines = []
+    """
+    draws the cloth
+    """
+    def draw(self, batch):
         scale = 300.0
         offset_x = 400.0
         offset_y = 300.0
 
-        for e in self.edges:
-            i1, i2 = e
-            x1, y1 = self.positions[i1]
-            x2, y2 = self.positions[i2]
-            lines.append((x1*scale + offset_x, y1*scale + offset_y,
-                          x2*scale + offset_x, y2*scale + offset_y))
-
-        vertex_count = len(lines)*2
+        # flatten tri coords
+        vertex_count = len(self.indices)
         vertex_data = []
-        for l in lines:
-            vertex_data.extend([l[0], l[1], l[2], l[3]])
+        for i_idx in self.indices:
+            X = self.x[i_idx]
+            # X is [x,y,z], but we'll only use x,y for 2D
+            vx = X[0]*scale + offset_x
+            vy = X[1]*scale + offset_y
+            vertex_data.extend([vx, vy])
 
-        # GL_LINES = 1
+        # color
+        r255 = tuple(int(c*255) for c in self.color)
+
         batch.add(
             vertex_count,
-            1,
-            group,
+            GL_TRIANGLES,
+            None,
             ('v2f', vertex_data)
         )
+
+    # FIXME : should change code to 2D version
+    def external_forces(self, G, wind, DT):
+        self.dv[:] = 0.0
+
+        for j in range(self.indices.shape[0]//3):
+            vi1 = self.indices[j * 3 + 0]
+            vi2 = self.indices[j * 3 + 1]
+            vi3 = self.indices[j * 3 + 2]
+
+            V1 = self.x[vi1]
+            V2 = self.x[vi2]
+            V3 = self.x[vi3]
+
+            Vv1 = self.v[vi1]
+            Vv2 = self.v[vi2]
+            Vv3 = self.v[vi3]
+
+            # normal from cross
+            n = np.cross(V2 - V1, V3 - V1)
+            A = np.linalg.norm(n)*0.5
+            if A < 1e-8:
+                continue
+            n = n/np.linalg.norm(n)
+
+            # FL ~ KL*A*(0,0,1)? 
+            # We'll keep it for structure, though this is 2D ignoring actual meaning
+            FL = self.KL * A * np.array([0,0,1], dtype=np.float32)
+
+            vavg = (Vv1 + Vv2 + Vv3)/3 + wind*DT
+            if np.dot(n, vavg)<0:
+                n = -n
+
+            # FD
+            # v.norm()^2 * A * ...
+            # We'll replicate the code
+            FD = 0.5*self.KD*(np.linalg.norm(vavg)**2)*A*np.dot(vavg, n)*(-vavg)
+
+            for vi in (vi1, vi2, vi3):
+                w = self.WEIGHT[vi]
+                if w>0:
+                    self.dv[vi] += (FL+FD)*DT/w
+
+        # average out by nt
+        for i in range(self.V):
+            if self.nt[i]>0:
+                self.dv[i]/=self.nt[i]
+            # gravity
+            self.dv[i][1] += (G*DT)
+            # damping
+            self.v[i] += self.DAMPING*self.dv[i]
+
+    """
+    p = x + v*dt
+    """
+    def make_predictions(self, DT):
+        self.p = self.x + DT * self.v
+
+    """
+    update v, x from p
+    if fixed => revert
+    """
+    def apply_correction(self, DT):
+        for i in range(self.V):
+            self.v[i] = (self.x[i] - self.p[i]) / DT
+            self.x[i] = self.p[i]
+            if self.fixed[i]==1:
+                self.x[i] = self.POSITIONS[i]
+
+    def fix_point(self, idx):
+        self.fixed[idx] = 1
+        self.WEIGHT[idx] = 0.0
+
+    def solve_stretching_constraint(self, iterations):
+        KS = self.KS**iterations
+
+        for i in range(self.edges.shape[0]/2):
+            p1 = self.edges[2 * i]
+            p2 = self.edges[2 * i+1]
+
+            d = np.linalg.norm(self.POSITIONS[p1] - self.POSITIONS[p2])
+            l = np.linalg.norm(self.p[p1] - self.p[p2])
+            n = (self.p[p1] - self.p[p2]) / l
+
+            lagrange = (l - d) / 2
+            
+            m = self.WEIGHT[p1] + self.WEIGHT[p2]
+
+            self.p[p1] -= KS * (self.WEIGHT[p1]/m) * lagrange * n
+            self.p[p2] += KS * (self.WEIGHT[p2]/m) * lagrange * n
+    
+    def fit(self,a):
+        return min(max(a,-1),1)
+
+    def solve_bending_constraints(self, iterations):
+        KB = self.KB**iterations
+
+        for i in range(self.tripairs.shape[0]/4):
+            p1 = self.tripairs[4 * i]
+            p2 = self.tripairs[4 * i+1]
+            p3 = self.tripairs[4 * i+2]
+            p4 = self.tripairs[4 * i+3]
+
+            v2, w2 = self.p[p2] - self.p[p1], self.POSITIONS[p2]-self.POSITIONS[p1]
+
+            v3, w3 = self.p[p3] - self.p[p1], self.POSITIONS[p3]-self.POSITIONS[p1]
+
+            v4, w4 = self.p[p4]-self.p[p1], self.POSITIONS[p4]-self.POSITIONS[p1]
+
+            vn1, wn1 = np.cross(v2, v3), np.cross(w2, w3)
+            vn1, wn1 = vn1/np.linalg.norm(vn1), wn1/np.linalg.norm(wn1)
+
+            vn2, wn2 = np.cross(v2, v4), np.cross(w2, w4)
+            vn2, wn2 = vn2/np.linalg.norm(vn2), wn2/np.linalg.norm(wn2)
+
+            vd, wd = np.dot(vn1,vn2), np.dot(wn1,wn2)
+
+            vd = self.fit(vd)
+            wd = self.fit(wd)
+            
+            q3 = (np.cross(v2, vn2) + np.cross(vn1, v2) * vd) / np.linalg.norm(np.cross(v2, v3))
+            q4 = (np.cross(v2, vn1) + np.cross(vn2, v2) * vd) / np.linalg.norm(np.cross(v2, v4))
+            q2 = (-(np.cross(v3, vn2) + np.cross(vn1, v3) * vd) / np.linalg.norm(np.cross(v2, v3))) - (np.cross(v4, vn1) + np.cross(vn2, v4) * vd) / np.linalg.norm(np.cross(v2, v4))
+            q1 = -q2 - q3 - q4
+
+            w = acos(wd)
+            
+            sd = -sqrt(1 - vd*vd) * (acos(vd) - w)
+            
+            S = self.WEIGHT[p1] * np.linalg.norm(q1)**2 + self.WEIGHT[p2] * np.linalg.norm(q2)**2 + self.WEIGHT[p3] * np.linalg.norm(q3)**2 + self.WEIGHT[p4] * np.linalg.norm(q4)**2
+            
+            if not sd == 0:
+                self.p[p1] += KB * self.WEIGHT[p1] * (sd/S * q1)
+                self.p[p2] += KB * self.WEIGHT[p2] * (sd/S * q2)
+                self.p[p3] += KB * self.WEIGHT[p3] * (sd/S * q3)
+                self.p[p4] += KB * self.WEIGHT[p4] * (sd/S * q4)
+
+    def solve_collision_constraints(self, obj):
+        KC = 1.0
+        for i in range(self.V):
+            p = self.p[i]
+            x = self.x[i]
+            
+            corr = obj.solve_collision_constraint(p, x)
+            self.p[i] += KC * corr
+            
+    def solve_self_collision_constraints(self, dt):
+        for i in range(self.V):
+            p = self.p[i]
+            x = self.x[i]
+
+            for j in range(self.indices.shape[0]/3):
+                vi1 = self.indices[j * 3 + 0]
+                vi2 = self.indices[j * 3 + 1]
+                vi3 = self.indices[j * 3 + 2]
+
+                V1 = self.p[vi1]
+                V2 = self.p[vi2]
+                V3 = self.p[vi3]
+
+                V1o = self.x[vi1]
+                V2o = self.x[vi2]
+                V3o = self.x[vi3]
+
+                
+                if not(i == vi1 or i == vi2 or i == vi3):
+                    tc = (V1 + V2 + V3) / 3
+                    D = np.linalg.norm(V2 - V1) + np.linalg.norm(V3 - V1)
+                    if np.linalg.norm(p - tc) < D/2:
+                        thickness = 0.002
+
+                        t = self.triangle_collision(p, x, V1, V2, V3)
+                        t2 = self.triangle_collision(p, x, V1o, V2o, V3o)
+                        
+                        if t >= 0 and t <= 1 and t2 >= 0:
+                            n = np.cross(V2 - V1, V3 - V1)
+                            n = n / np.linalg.norm(n)
+                            
+                            v = p - x
+                            if np.dot(n, v) > 0:
+                                n = -n
+
+                            C = np.dot(n, p - V1) - 2 * thickness
+                            M = -1. * n.outer_product(n)        # FIXME
+                            M[0, 0] += 1
+                            M[1, 1] += 1 
+                            M[2, 2] += 1 
+
+                            M = M / n.norm()
+
+                            cp = n
+                            c1 = np.cross(V2 - V3, M @ n) - n
+                            c2 = np.cross(V3 - V1, M @ n)
+                            c3 = np.cross(V2 - V1, M @ n)
+
+                            S = self.WEIGHT[i] * np.linalg.norm(cp)**2 + self.WEIGHT[vi1] * np.linalg.norm(c1)**2 + self.WEIGHT[vi2] * np.linalg.norm(c2)**2 + self.WEIGHT[vi3] * np.linalg.norm(c3)**2
+
+                            
+                            self.p[i] -= C/S * self.WEIGHT[i] * cp
+                            self.p[vi1] -= C/S * self.WEIGHT[vi1] * c1
+                            self.p[vi2] -= C/S * self.WEIGHT[vi2] * c2
+                            self.p[vi3] -= C/S * self.WEIGHT[vi3] * c3
