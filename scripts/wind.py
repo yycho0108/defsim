@@ -4,10 +4,10 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
-from simulation import Simulation
-from clothes.grid_cloth import GridCloth
+from simulation.simulation import Simulation
+from clothes.GridCloth import GridCloth
 from objects.Circle import Circle
-from objects.Plane import Plane
+from objects.Line import Line
 
 def main():
     sim = Simulation(name="WindDemo", res=(800, 600), dt=0.01, gravity=-0.9)
@@ -23,9 +23,9 @@ def main():
 
     sim.add_cloth(cloth)
 
-    # add plane (like ground)
-    plane = Plane(point=(0, -0.3), normal=(0, 1), drest=0.01)
-    sim.add_object(plane)
+    # add line (like ground)
+    line = Line(point=(0, -0.3), normal=(0, 1), drest=0.01)
+    sim.add_object(line)
 
     sim.run()
 
