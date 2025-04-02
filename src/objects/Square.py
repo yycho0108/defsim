@@ -15,11 +15,10 @@ class Square(Object):
         color : tuple(r, g, b) , optional
             rgb color of the square
     """
-    def __init__(self, center, size, color=(0, 0, 0), drest=0.01):
+    def __init__(self, center, size, color=(0, 0, 0)):
         self.center = np.array(center, dtype=np.float32)
         self.size = size
         self.color = color
-        self.drest = drest
 
     """
     @OVERRIDE
@@ -61,8 +60,8 @@ class Square(Object):
         dw = cp.dot(what)
         dh = cp.dot(hhat)
         
-        absdw = np.linalg.norm(w) + self.drest - abs(dw)
-        absdh = np.linalg.norm(h) + self.drest - abs(dh)
+        absdw = np.linalg.norm(w) - abs(dw)
+        absdh = np.linalg.norm(h) - abs(dh)
         
         res = 0
         if absdw > 0 and absdh > 0:

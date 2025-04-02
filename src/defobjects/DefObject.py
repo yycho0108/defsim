@@ -1,4 +1,4 @@
-# cloth.py
+# DefObject.py
 
 import numpy as np
 from math import sqrt, acos
@@ -9,6 +9,7 @@ class DefObject:
         self.num_x = num[0]
         self.num_y = num[1]
         self.spacing = spacing
+        self.collision_radius = spacing * 0.5   # FIXME: maybe larger
         self.origin = np.array(origin, dtype=np.float32)
         self.line_color = line_color
         self.point_color = point_color
@@ -35,7 +36,7 @@ class DefObject:
         self._point_positions = np.zeros((self.num_x * self.num_y, 2), dtype=np.float32)
 
     """
-    draws the cloth
+    draws the object
     """
     
     def draw(self, scene, scale, offset):
