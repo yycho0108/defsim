@@ -41,7 +41,7 @@ class Line(Object):
                 y = p1[1] * scale + offset,
                 x2 = p2[0] * scale + offset,
                 y2 = p2[1] * scale + offset,
-                width = 5,
+                width = 10,
                 color = c255,
                 batch = scene
             )
