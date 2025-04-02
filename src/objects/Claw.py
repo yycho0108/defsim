@@ -56,7 +56,7 @@ class Claw(Square):
 
     def toggle_active(self):
         self.active = not self.active
-        self.color = (1, 0, 0) if self.active else self.original_color
+        self.color = (0, 1, 0) if self.active else self.original_color
         
     # Just to prevent claw collide with objects (PBD X)
     def check_claw_collision(self, object, cx, cy):

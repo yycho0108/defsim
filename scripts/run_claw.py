@@ -11,7 +11,7 @@ from objects.Square import Square
 from objects.Claw import Claw
 
 def main():
-    sim = ClawSimulation("claw machine", dt=0.01, iterations=5, selfCollision=False)
+    sim = ClawSimulation("claw machine", dt=0.001, iterations=5, selfCollision=True)
     
     # TODO: add claw
     claw = Claw(center=(-0.5, 0.0), size=(0.3, 0.1), color=(0, 0, 0))
@@ -38,7 +38,7 @@ def main():
     for square in squares:
         sim.add_object(square)
     
-    sim.set_wind((3.0, 0.0))
+    # sim.set_wind((1.0, 0.0))
     
     sim.run()
 

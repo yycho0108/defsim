@@ -26,10 +26,6 @@ class DefObject:
         self.edges = []
         self.build_edges()
         
-        # initialize self collision constraints
-        self.triangles = []
-        self.build_triangles()
-        
         # draw buffers
         self._line_positions = np.zeros((len(self.edges)*2, 2), dtype=np.float32)
         self._point_positions = np.zeros((self.num_x * self.num_y, 2), dtype=np.float32)
@@ -109,7 +105,7 @@ class DefObject:
     def apply_correction(self, DT):
         for i in range(self.num_x):
             for j in range(self.num_y):
-                self.v[i, j] = (self.x[i, j] - self.p[i, j]) / DT
+                self.v[i, j] = (self.p[i, j] - self.x[i, j]) / DT
                 self.x[i, j] = self.p[i, j]
                 
     def build_edges(self):
@@ -136,12 +132,6 @@ class DefObject:
                     p2 = self.x[i+1, j-1]
                     rest_len = np.linalg.norm(p2 - p1)
                     self.edges.append(((i, j), (i+1, j-1), rest_len))
-                    
-    def build_triangles(self):
-        for i in range(self.num_x - 1):
-            for j in range(self.num_y - 1):
-                self.triangles.append(((i, j), (i+1, j), (i, j+1)))
-                self.triangles.append(((i+1, j), (i, j+1), (i+1, j+1)))
 
     def solve_stretching_constraint(self, iterations):
         KS = self.KS ** iterations

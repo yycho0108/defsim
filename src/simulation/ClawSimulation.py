@@ -4,7 +4,7 @@ from .Simulation import Simulation
 class ClawSimulation(Simulation):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
-        self.move_speed = 0.05
+        self.move_speed = 0.01
         self.key_state = {key.W: False, key.S: False, key.A: False, key.D: False, key.UP: False, key.DOWN: False, key.LEFT: False, key.RIGHT: False}
 
 
