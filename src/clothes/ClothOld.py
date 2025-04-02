@@ -30,9 +30,8 @@ class Cloth:
         self.triangles = []
         self.build_triangles()
         
-        # draw buffers
-        self._line_positions = np.zeros((len(self.edges)*2, 2), dtype=np.float32)
         self._point_positions = np.zeros((self.num_x * self.num_y, 2), dtype=np.float32)
+        self._line_positions = np.zeros((len(self.edges)*2, 2), dtype=np.float32)
 
     """
     draws the cloth
@@ -44,16 +43,9 @@ class Cloth:
         
         if not hasattr(self, '_point_list'):
             num_points = self.num_x * self.num_y
-            self._update_line_buffer(scale, offset)
             self._update_point_buffer(scale, offset)
+            self._update_line_buffer(scale, offset)
             
-            self._line_list = scene.add(
-                len(self.edges)*2,
-                pyglet.gl.GL_LINES,
-                None,
-                ('v2f/stream', self._line_positions.flatten().tolist()),
-                ('c3B/static', l255 * len(self.edges)*2)
-            )
             self._point_list = scene.add(
                 num_points,
                 pyglet.gl.GL_POINTS,
@@ -61,11 +53,18 @@ class Cloth:
                 ('v2f/stream', self._point_positions.flatten().tolist()),
                 ('c3B/static', p255 * num_points)
             )
+            self._line_list = scene.add(
+                len(self.edges)*2,
+                pyglet.gl.GL_LINES,
+                None,
+                ('v2f/stream', self._line_positions.flatten().tolist()),
+                ('c3B/static', l255 * len(self.edges)*2)
+            )
         else:
-            self._update_line_buffer(scale, offset)
             self._update_point_buffer(scale, offset)
-            self._line_list.vertices[:] = self._line_positions.flatten().tolist()
+            self._update_line_buffer(scale, offset)
             self._point_list.vertices[:] = self._point_positions.flatten().tolist()
+            self._line_list.vertices[:] = self._line_positions.flatten().tolist()
             
         pyglet.gl.glEnable(pyglet.gl.GL_PROGRAM_POINT_SIZE)
         pyglet.gl.glPointSize(10)
@@ -171,108 +170,139 @@ class Cloth:
         dot12 = np.dot(v1_vec, v2_vec)
         
         # Compute barycentric coordinates
-        inv_denom = 1.0 / (dot00 * dot11 - dot01 * dot01 + 1e-6)
+        inv_denom = 1.0 / (dot00 * dot11 - dot01 * dot01)
         u = (dot11 * dot02 - dot01 * dot12) * inv_denom
         v = (dot00 * dot12 - dot01 * dot02) * inv_denom
         
         # Check if point is in triangle
         return (u >= -1e-6) and (v >= -1e-6) and (u + v <= 1 + 1e-6)
-                
-    def resolve_self_collsion(self, p, x, a, b, c):
-        p_is_inside = self.point_in_triangle(p, a, b, c)
-        x_is_inside = self.point_in_triangle(x, a, b, c)
-        
-        if not p_is_inside:
-            return False, None, None
-        
-        elif x_is_inside:
-            # find the closest point on the triangle
-            penetration_depth = float('inf')
-            closest_normal = None
-            
-            edges = [(a, b), (b, c), (c, a)]
-            for e1, e2 in edges:
-                edge_vec = e2 - e1
-                edge_len = np.linalg.norm(edge_vec)
-                if edge_len < 1e-6:
-                    continue
-                
-                dist = np.linalg.norm(np.cross(edge_vec, e1 - p)) / edge_len
-                
-                if dist < penetration_depth:
-                    penetration_depth = dist
-                    normal = (p - e1) - np.dot((p - e1), edge_vec) * edge_vec / edge_len
-                    if np.linalg.norm(normal) > 1e-6:
-                        closest_normal = normal / np.linalg.norm(normal)
-                        
-            if closest_normal is None:
-                return False, None, None
-                    
-            return True, closest_normal, penetration_depth
-            
-        else:
-            # find penetrated edge
-            edges = [(a, b), (b, c), (c, a)]
-            for e1, e2 in edges:
-                xp = p - x
-                ab = e2 - e1
-                ax = x - e1
-            
-                det = -xp[0] * ab[1] + xp[1] * ab[0]
-                if abs(det) < 1e-6:
-                    continue
-            
-                t = (ax[0] * ab[1] - ax[1] * ab[0]) / det
-                k = (-xp[0] * ax[1] + xp[1] * ax[0]) / det
-                
-                # penetration
-                if 0 < t < 1 and 0 < k < 1:
-                    normal = np.array([-ab[1], ab[0]])
-                    if np.dot(normal, xp) > 0:
-                        normal = -normal
-                    normal /= np.linalg.norm(normal)
-                    penetration_depth = -np.dot(normal, xp)
-                    
-                    return True, normal, penetration_depth
-            
-            return False, None, None
     
+    def resolve_triangle_collision(self, p, A, B, C, i, j, A_idx, B_idx, C_idx):
+        # Calculate triangle normal
+        AB = B - A
+        AC = C - A
+        normal = np.cross(np.append(AB, 0), np.append(AC, 0))
+        normal = normal[:2]  # Take only x,y components
+        normal_len = np.linalg.norm(normal)
+        
+        if normal_len < 1e-10:
+            return
+            
+        normal = normal / normal_len
+        
+        # Calculate penetration depth along normal
+        penetration = np.dot(normal, A - p)
+        
+        if penetration <= 0:
+            return  # No penetration
+                
+        # Apply correction with damping
+        correction = (self.KC * penetration * normal) 
+        point_correction = correction * (3.0 / 4.0)
+        vertex_correction = -correction * (1.0 / 4.0)
+        
+        self.p[i, j] += point_correction
+        self.p[A_idx] += vertex_correction
+        self.p[B_idx] += vertex_correction
+        self.p[C_idx] += vertex_correction
+        
+    # def solve_self_collision_constraints(self, iterations):
+    #     # Create spatial hash grid for accelerated collision detection
+    #     cell_size = 2 * self.spacing
+    #     grid = {}
+        
+    #     # Insert triangles into spatial grid
+    #     for idx, tri in enumerate(self.triangles):
+    #         A_idx, B_idx, C_idx = tri
+    #         A = self.p[A_idx]
+    #         B = self.p[B_idx]
+    #         C = self.p[C_idx]
+            
+    #         # Calculate bounding box of triangle
+    #         min_x = min(A[0], B[0], C[0])
+    #         min_y = min(A[1], B[1], C[1])
+    #         max_x = max(A[0], B[0], C[0])
+    #         max_y = max(A[1], B[1], C[1])
+            
+    #         # Add triangle to all cells it overlaps
+    #         for x in range(int(min_x / cell_size), int(max_x / cell_size) + 1):
+    #             for y in range(int(min_y / cell_size), int(max_y / cell_size) + 1):
+    #                 key = (x, y)
+    #                 if key not in grid:
+    #                     grid[key] = []
+    #                 grid[key].append(idx)
+        
+    #     # Check point-triangle collisions using spatial grid
+    #     for i in range(self.num_x):
+    #         for j in range(self.num_y):
+    #             p = self.p[i, j]
+                
+    #             # Get cell key for this point
+    #             cell_x = int(p[0] / cell_size)
+    #             cell_y = int(p[1] / cell_size)
+                
+    #             # Check only triangles in this cell and neighboring cells
+    #             for dx in [-1, 0, 1]:
+    #                 for dy in [-1, 0, 1]:
+    #                     key = (cell_x + dx, cell_y + dy)
+    #                     if key not in grid:
+    #                         continue
+                        
+    #                     for tri_idx in grid[key]:
+    #                         tri = self.triangles[tri_idx]
+    #                         if (i, j) in tri:
+    #                             continue
+                            
+    #                         A_idx, B_idx, C_idx = tri
+    #                         A = self.p[A_idx]
+    #                         B = self.p[B_idx]
+    #                         C = self.p[C_idx]
+                            
+    #                         # Continue with improved collision detection and response
+    #                         if self.point_in_triangle(p, A, B, C):
+    #                             self.resolve_triangle_collision(p, A, B, C, i, j, A_idx, B_idx, C_idx)
+                
     def solve_self_collision_constraints(self, iterations):
         for i in range(self.num_x):
             for j in range(self.num_y):
-                # current point
                 p = self.p[i, j]
-                x = self.x[i, j]
                 
                 for tri in self.triangles:
-                    idx1, idx2, idx3 = tri
-                    
-                    # TODO: filter out some traingles
                     if (i, j) in tri:
                         continue
                     
-                    v1, v2, v3 = [self.p[i1, j1] for i1, j1 in tri]
+                    A_idx, B_idx, C_idx = tri
+                    A = self.p[A_idx]
+                    B = self.p[B_idx]
+                    C = self.p[C_idx]
                     
-                    # FIXME: do we need to check this??
-                    # v1o, v2o, v3o = [self.x[i1, j1] for i1, j1 in tri]
-                    
-                    min_x = min(v1[0], v2[0], v3[0])
-                    max_x = max(v1[0], v2[0], v3[0])
-                    min_y = min(v1[1], v2[1], v3[1])
-                    max_y = max(v1[1], v2[1], v3[1])
-                    
-                    margin = self.spacing * 0.5
-                    if (p[0] < min_x - margin or p[0] > max_x + margin or 
-                        p[1] < min_y - margin or p[1] > max_y + margin):
+                    centroid = (A + B + C) / 3
+                    dist = np.linalg.norm(p - centroid)
+                    if dist > 2 * self.spacing: # skip if too far
                         continue
                     
-                    penetrate, normal, depth = self.resolve_self_collsion(p, x, v1, v2, v3)
-                    
-                    if penetrate and depth > 0:
-                        # apply correction
-                        delta = normal * depth
-                        self.p[i, j] += self.KC * delta
-                        self.p[idx1] -= self.KC * delta / 3
-                        self.p[idx2] -= self.KC * delta / 3
-                        self.p[idx3] -= self.KC * delta / 3
-                        # breakpoint()
+                    if self.point_in_triangle(p, A, B, C):
+                        edges = [(A, B, C), (B, C, A), (C, A, B)]
+                        max_penetration = 0
+                        best_normal = None
+                        
+                        for P, Q, R in edges:
+                            edge = Q - P
+                            normal = np.array([-edge[1], edge[0]])
+                            normal /= np.linalg.norm(normal)
+                            
+                            if np.dot(normal, R - P) > 1e-6:
+                                normal = -normal
+                                
+                            penetration = -np.dot(normal, p - P)
+                            if penetration > max_penetration:
+                                max_penetration = penetration
+                                best_normal = normal
+                                
+                        if max_penetration > 0:
+                            breakpoint()
+                            delta = max_penetration * best_normal
+                            self.p[i, j] += self.KC * delta
+                            self.p[A_idx] -= self.KC * delta / 3
+                            self.p[B_idx] -= self.KC * delta / 3
+                            self.p[C_idx] -= self.KC * delta / 3

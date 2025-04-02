@@ -76,8 +76,8 @@ class Simulation:
                 c.solve_collision_constraints(o)
             c.solve_stretching_constraint(self.NUM_ITERATIONS)
             # c.solve_bending_constraints(self.NUM_ITERATIONS)
-            # if self.selfCollision:
-            #     c.solve_self_collision_constraints(self.NUM_ITERATIONS)
+            if self.selfCollision:
+                c.solve_self_collision_constraints(self.NUM_ITERATIONS)
                 
         c.apply_correction(self.DT)
 
