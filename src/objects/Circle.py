@@ -15,11 +15,10 @@ class Circle(Object):
         color: tuple(r, g, b), optional
             rgb color of the circle, range[0-1]
     """
-    def __init__(self, center, radius, color=(0, 0, 0), drest=0.01):
+    def __init__(self, center, radius, color=(0, 0, 0)):
         self.center = np.array(center, dtype=np.float32)
         self.radius = radius
         self.color = color
-        self.drest = drest
 
     """
     @OVERRIDE
@@ -52,17 +51,17 @@ class Circle(Object):
     def solve_collision_constraint(self, p, x):
         cp = p - self.center
         res = 0
-        if np.linalg.norm(cp) < (self.radius + self.drest):
-            if np.linalg.norm(x - self.center) < (self.radius + self.drest):
+        if np.linalg.norm(cp) < self.radius:
+            if np.linalg.norm(x - self.center) < self.radius:
                 n = cp / np.linalg.norm(cp)
-                res = (self.radius + self.drest - np.linalg.norm(cp)) * n
+                res = (self.radius - np.linalg.norm(cp)) * n
             
             else:
                 d = p - x
                 oc = x - self.center
                 a = d.dot(d)
                 b = 2.0 * oc.dot(d)
-                c = oc.dot(oc) - (self.radius + self.drest) * (self.radius + self.drest)
+                c = oc.dot(oc) - self.radius * self.radius
                 
                 t = 0
                 disc = b * b - 4 * a * c
@@ -73,6 +72,6 @@ class Circle(Object):
                 n = collision_point - self.center
                 n = n / np.linalg.norm(n)
                 
-                C = np.dot((p - collision_point), n) - self.drest
+                C = np.dot((p - collision_point), n)
                 res = - C * n
         return res

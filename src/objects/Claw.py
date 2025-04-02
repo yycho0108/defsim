@@ -6,8 +6,8 @@ from .Square import Square
 from .Line import Line
 
 class Claw(Square):
-    def __init__(self, center, size, color=(0, 0, 0), drest=0.01):
-        super().__init__(center, size, color, drest)
+    def __init__(self, center, size, color=(0, 0, 0)):
+        super().__init__(center, size, color)
         self.active = False
         self.original_color = color
 

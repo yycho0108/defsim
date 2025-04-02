@@ -1,4 +1,4 @@
-# scripts/oneCircle.py
+# scripts/run_claw.py
 
 import sys
 import os
@@ -23,18 +23,18 @@ def main():
 
     # add lines (walls)
     lines = []
-    lines.append(Line(center=(0.0, -1.0), normal=(0,1), color=(1, 0, 0), drest=0.01))
-    lines.append(Line(center=(-1.0, 0.0), normal=(1,0), color=(1, 0, 0), drest=0.01))
-    lines.append(Line(center=(1.0, 0.0), normal=(-1,0), color=(1, 0, 0), drest=0.01))
+    lines.append(Line(center=(0.0, -1.0), normal=(0,1), color=(1, 0, 0)))
+    lines.append(Line(center=(-1.0, 0.0), normal=(1,0), color=(1, 0, 0)))
+    lines.append(Line(center=(1.0, 0.0), normal=(-1,0), color=(1, 0, 0)))
     for line in lines:
         sim.add_object(line)
     
     # add squares (gate)
     squares = []
-    squares.append(Square(center=(0.1, -0.8), size=(0.2, 0.4), color=(0, 0, 1), drest=0.01))
-    squares.append(Square(center=(0.2, -0.5), size=(0.4, 0.2), color=(0, 0, 1), drest=0.01))
-    squares.append(Square(center=(0.8, -0.5), size=(0.4, 0.2), color=(0, 0, 1), drest=0.01))
-    squares.append(Square(center=(0.9, -0.8), size=(0.2, 0.4), color=(0, 0, 1), drest=0.01))
+    squares.append(Square(center=(0.1, -0.8), size=(0.2, 0.4), color=(0, 0, 1)))
+    squares.append(Square(center=(0.2, -0.5), size=(0.4, 0.2), color=(0, 0, 1)))
+    squares.append(Square(center=(0.8, -0.5), size=(0.4, 0.2), color=(0, 0, 1)))
+    squares.append(Square(center=(0.9, -0.8), size=(0.2, 0.4), color=(0, 0, 1)))
     for square in squares:
         sim.add_object(square)
     

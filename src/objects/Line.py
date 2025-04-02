@@ -15,13 +15,12 @@ class Line(Object):
         color: tuple(r, g, b), optional
             rgb color of the circle, range[0-1]
     """
-    def __init__(self, center, normal=(0,1), L=1000, color=(0, 0, 0), drest=0.001):
+    def __init__(self, center, normal=(0,1), L=1000, color=(0, 0, 0)):
         self.center = np.array(center, dtype=np.float32)
         self.normal = np.array(normal, dtype=np.float32)
         self.normal = self.normal / np.linalg.norm(self.normal)
         self.color = color
-        self.drest = drest
-        self.L = L
+        self.L = L  # assume that line is infinitely long
 
     """
     @OVERRIDE
@@ -59,10 +58,9 @@ class Line(Object):
     """
     def solve_collision_constraint(self, p, x):
         cp = p - self.center
-        cpdrest = cp - self.drest * self.normal
         
-        l = abs(np.dot(cpdrest, self.normal))
-        if np.dot(cpdrest, self.normal) < 0:
+        l = abs(np.dot(cp, self.normal))
+        if np.dot(cp, self.normal) < 0:
             return l * self.normal
         else:
             return np.array([0.0, 0.0], dtype=np.float32)
