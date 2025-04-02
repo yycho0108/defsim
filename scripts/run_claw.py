@@ -14,7 +14,6 @@ from objects.Claw import Claw
 def main():
     sim = ClawSimulation("claw machine", dt=0.001, iterations=5, selfCollision=True)
     
-    # TODO: add claw
     claw = Claw(center=(-0.5, 0.0), size=(0.6, 0.2), color=(0, 0, 0))
     sim.add_claw(claw)
     

@@ -1,0 +1,2 @@
+numpy
+pyglet==1.5.29
