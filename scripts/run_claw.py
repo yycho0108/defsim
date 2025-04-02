@@ -11,23 +11,23 @@ from objects.Square import Square
 from objects.Claw import Claw
 
 def main():
-    sim = ClawSimulation("claw machine", dt=0.01, iterations=10, selfCollision=False)
+    sim = ClawSimulation("claw machine", dt=0.01, iterations=5, selfCollision=False)
     
     # TODO: add claw
-    claw = Claw(center=(-0.5, 0.0), size=(0.3, 0.1), color=(0.5, 0.5, 0.5))
+    claw = Claw(center=(-0.5, 0.0), size=(0.3, 0.1), color=(0, 0, 0))
     sim.add_claw(claw)
     
     # add doll
-    doll = DefObject(num=(10, 10), spacing=0.025, origin=(-0.5, -0.8), KS=1.0, KC=1.0)
+    doll = DefObject(num=(5, 5), spacing=0.05, origin=(-0.5, -0.8), KS=1.0, KC=1.0)
     sim.add_def_object(doll)
 
-    # add lines (walls)
-    lines = []
-    lines.append(Line(center=(0.0, -1.0), normal=(0,1), color=(1, 0, 0)))
-    lines.append(Line(center=(-1.0, 0.0), normal=(1,0), color=(1, 0, 0)))
-    lines.append(Line(center=(1.0, 0.0), normal=(-1,0), color=(1, 0, 0)))
-    for line in lines:
-        sim.add_object(line)
+    # add walls
+    walls = []
+    walls.append(Line(center=(0.0, -1.0), normal=(0,1), color=(1, 0, 0)))
+    walls.append(Line(center=(-1.0, 0.0), normal=(1,0), color=(1, 0, 0)))
+    walls.append(Line(center=(1.0, 0.0), normal=(-1,0), color=(1, 0, 0)))
+    for wall in walls:
+        sim.add_object(wall)
     
     # add squares (gate)
     squares = []

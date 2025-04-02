@@ -1,7 +1,6 @@
 # src/objects/Box.py
 
 import numpy as np
-import pyglet
 from pyglet import shapes
 from .Object import Object
 
@@ -50,33 +49,46 @@ class Square(Object):
         p: numpy array [x, y]
             the point which collides
     """
-    def solve_collision_constraint(self, p, x):
-        cp = p - self.center
-        w = np.array([self.size[0]/2, 0])
-        h = np.array([0, self.size[1]/2])
-        what = w / np.linalg.norm(w)
-        hhat = h / np.linalg.norm(h)
+    def solve_collision_constraint(self, p, radius=0.0):
+        cp = p - self.center  # Vector from square center to particle
+        half_width = self.size[0] / 2
+        half_height = self.size[1] / 2
         
-        dw = cp.dot(what)
-        dh = cp.dot(hhat)
+        # Find closest point on rectangle border
+        # First, determine region
+        inside_x = abs(cp[0]) < half_width
+        inside_y = abs(cp[1]) < half_height
         
-        absdw = np.linalg.norm(w) - abs(dw)
-        absdh = np.linalg.norm(h) - abs(dh)
-        
-        res = 0
-        if absdw > 0 and absdh > 0:
-            argmin = 1
-            vmin = absdw
-            if vmin > absdh:
-                argmin = 2
-                vmin = absdh
+        if inside_x and inside_y:
+            # Point is inside rectangle, find closest edge
+            dx_right = half_width - cp[0]
+            dx_left = cp[0] + half_width
+            dy_top = half_height - cp[1]
+            dy_bottom = cp[1] + half_height
             
-            if argmin == 1:
-                res = what * (absdw)
-                if dw < 0:
-                    res = -res
-            elif argmin == 2:
-                res = hhat * (absdh)
-                if dh < 0:
-                    res = -res
-        return res
+            # Find minimum distance to edge
+            min_dist = min(dx_right, dx_left, dy_top, dy_bottom)
+            
+            # Create correction vector along appropriate axis
+            if min_dist == dx_right:
+                return np.array([radius + min_dist, 0.0], dtype=np.float32)
+            elif min_dist == dx_left:
+                return np.array([-radius - min_dist, 0.0], dtype=np.float32)
+            elif min_dist == dy_top:
+                return np.array([0.0, radius + min_dist], dtype=np.float32)
+            else:  # dy_bottom
+                return np.array([0.0, -radius - min_dist], dtype=np.float32)
+        else:
+            # Find closest point on rectangle
+            closest_x = max(-half_width, min(cp[0], half_width))
+            closest_y = max(-half_height, min(cp[1], half_height))
+            
+            # Vector from closest point to circle center
+            closest_vector = cp - np.array([closest_x, closest_y])
+            dist = np.linalg.norm(closest_vector)
+            
+            # If distance is less than radius, we have a collision
+            if dist < radius:
+                return (radius - dist) * (closest_vector / dist)
+            else:
+                return np.array([0.0, 0.0], dtype=np.float32)

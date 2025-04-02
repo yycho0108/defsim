@@ -1,5 +1,4 @@
 import numpy as np
-import pyglet
 from pyglet import shapes
 from .Circle import Circle
 from .Square import Square
