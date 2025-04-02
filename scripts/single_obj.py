@@ -6,8 +6,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src'
 
 from simulation.Simulation import Simulation
 from defobjects.DefObject import DefObject
-from objects.Circle import Circle
 from objects.Line import Line
+from objects.Square import Square
 
 def main():
     sim = Simulation("test", dt=0.005, iterations=10, selfCollision=True)
@@ -17,8 +17,14 @@ def main():
     sim.add_def_object(def_obj)
 
     # add line
-    line = Line(center=(0.0, -0.5), normal=(0,1), color=(0.3, 0.3, 0.3))
-    sim.add_object(line)
+    # line = Line(center=(0.0, -0.5), normal=(0,1), color=(0.3, 0.3, 0.3))
+    # sim.add_object(line)
+    
+    # add square
+    square = Square(center=(0.2, -0.8), size=(0.5, 0.1), color=(0.3, 0.3, 0.3))
+    sim.add_object(square)
+    
+    # sim.set_wind((5.0, 0.0))
 
     sim.run()
 

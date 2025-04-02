@@ -1,7 +1,6 @@
 # src/objects/Circle.py
 
 import numpy as np
-import pyglet
 from pyglet import shapes
 from .Object import Object
 
@@ -48,30 +47,19 @@ class Circle(Object):
         p: numpy array [x, y]
             the point which collides
     """
-    def solve_collision_constraint(self, p, x):
-        cp = p - self.center
-        res = 0
-        if np.linalg.norm(cp) < self.radius:
-            if np.linalg.norm(x - self.center) < self.radius:
-                n = cp / np.linalg.norm(cp)
-                res = (self.radius - np.linalg.norm(cp)) * n
+    def solve_collision_constraint(self, p, radius=0.0):
+        v = p - self.center
+        dist = np.linalg.norm(v)
+        
+        combined_radius = self.radius + radius
+        
+        if dist < combined_radius:
+            # If particle is exactly at the center, push arbitrarily to the right
+            if dist < 1e-6:
+                v = np.array([1.0, 0.0], dtype=np.float32)
+                dist = 1.0
             
-            else:
-                d = p - x
-                oc = x - self.center
-                a = d.dot(d)
-                b = 2.0 * oc.dot(d)
-                c = oc.dot(oc) - self.radius * self.radius
-                
-                t = 0
-                disc = b * b - 4 * a * c
-                if disc > 0:
-                    t = (-b - np.sqrt(disc)) / (2 * a)
-                    
-                collision_point = x + t * d
-                n = collision_point - self.center
-                n = n / np.linalg.norm(n)
-                
-                C = np.dot((p - collision_point), n)
-                res = - C * n
-        return res
+            # Push just enough to make surfaces touch (not centers)
+            return (combined_radius - dist) * (v / dist)
+        else:
+            return np.array([0.0, 0.0], dtype=np.float32)

@@ -22,8 +22,8 @@ class Object(object, metaclass=ABCMeta):
     """
     Check if p collides with the object
     p: (numpy array) predicted position, shape (2,)
-    x: (numpy array) old position, shape (2,)
+    radius: (float) radius of the particle
     """
     @abstractmethod
-    def solve_collision_constraint(self, p, x):
+    def solve_collision_constraint(self, p, radius=0.0):
         pass

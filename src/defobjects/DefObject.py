@@ -1,15 +1,14 @@
-# DefObject.py
+# src/defobjects/DefObject.py
 
 import numpy as np
-from math import sqrt, acos
 import pyglet
 
 class DefObject:
-    def __init__(self, num, spacing, origin, line_color=(0, 0, 1), point_color=(1, 0, 0), KS=1.0, KC=1.0, DAMPING=0.9):
+    def __init__(self, num, spacing, origin, line_color=(0, 0, 0), point_color=(0.5, 0.5, 0.5), KS=1.0, KC=1.0, DAMPING=0.9):
         self.num_x = num[0]
         self.num_y = num[1]
         self.spacing = spacing
-        self.collision_radius = spacing * 0.5   # FIXME: maybe larger
+        self.collision_radius = spacing * 0.5
         self.origin = np.array(origin, dtype=np.float32)
         self.line_color = line_color
         self.point_color = point_color
@@ -43,11 +42,11 @@ class DefObject:
         p255 = tuple(int(c * 255) for c in self.point_color)
         l255 = tuple(int(c * 255) for c in self.line_color)
         
-        if not hasattr(self, '_point_list'):
-            num_points = self.num_x * self.num_y
-            self._update_line_buffer(scale, offset)
-            self._update_point_buffer(scale, offset)
-            
+        # Update line buffer regardless
+        self._update_line_buffer(scale, offset)
+        
+        if not hasattr(self, '_line_list'):
+            # Setup lines
             self._line_list = scene.add(
                 len(self.edges)*2,
                 pyglet.gl.GL_LINES,
@@ -55,38 +54,49 @@ class DefObject:
                 ('v2f/stream', self._line_positions.flatten().tolist()),
                 ('c3B/static', l255 * len(self.edges)*2)
             )
-            self._point_list = scene.add(
-                num_points,
-                pyglet.gl.GL_POINTS,
-                None,
-                ('v2f/stream', self._point_positions.flatten().tolist()),
-                ('c3B/static', p255 * num_points)
-            )
-        else:
-            self._update_line_buffer(scale, offset)
-            self._update_point_buffer(scale, offset)
-            self._line_list.vertices[:] = self._line_positions.flatten().tolist()
-            self._point_list.vertices[:] = self._point_positions.flatten().tolist()
             
-        pyglet.gl.glEnable(pyglet.gl.GL_PROGRAM_POINT_SIZE)
-        pyglet.gl.glPointSize(10)
-        pyglet.gl.glLineWidth(2)
-    
-    def _update_point_buffer(self, scale, offset):
-        self._point_positions[:] = (self.x.reshape(-1, 2) * scale + offset)
+            # Create circles using pyglet.shapes
+            self._circles = []
+            for i in range(self.num_x):
+                for j in range(self.num_y):
+                    pos = self.p[i, j] * scale + offset
+                    circle = pyglet.shapes.Circle(
+                        pos[0], pos[1],
+                        self.collision_radius * scale,
+                        segments=16,
+                        color=p255,
+                        batch=scene
+                    )
+                    self._circles.append((circle, (i, j)))
+        else:
+            # Update lines
+            self._line_list.vertices[:] = self._line_positions.flatten().tolist()
+            
+            # Update circle positions
+            for circle, (i, j) in self._circles:
+                pos = self.p[i, j] * scale + offset
+                circle.x = pos[0]
+                circle.y = pos[1]
+                circle.radius = self.collision_radius * scale
+        
+        # Set rendering properties
+        pyglet.gl.glLineWidth(5)
 
     def _update_line_buffer(self, scale, offset):
         line_indices = [(i1, j1, i2, j2) for (i1, j1), (i2, j2), _ in self.edges]
         i, j, k, l = np.array(line_indices).T
         lines = np.hstack([self.x[i,j], self.x[k,l]]) * scale + offset
         self._line_positions[:] = lines.reshape(-1, 2)
-    
+
     def reset_pos(self):
+        offset_x = (self.num_x - 1) * self.spacing / 2
+        offset_y = (self.num_y - 1) * self.spacing / 2
         for i in range(self.num_x):
             for j in range(self.num_y):
-                self.x[i, j] = self.origin + np.array([i * self.spacing, j * self.spacing]) - np.array([self.num_x * self.spacing / 2, self.num_y * self.spacing / 2])
+                self.x[i, j] = self.origin + np.array([i * self.spacing, j * self.spacing]) - np.array([offset_x, offset_y])
                 self.p[i, j] = self.x[i, j]
                 self.v[i, j] = np.zeros(2, dtype=np.float32)
+
 
     def external_forces(self, G, wind, DT):
         self.dv[:, :, 1] += G * DT
@@ -154,128 +164,42 @@ class DefObject:
     def solve_collision_constraints(self, obj):
         for i in range(self.num_x):
             for j in range(self.num_y):
-                p = self.p[i, j]
-                x = self.x[i, j]
-                
-                corr = obj.solve_collision_constraint(p, x)
+                p = self.p[i, j]                
+                corr = obj.solve_collision_constraint(p, self.collision_radius)
                 self.p[i, j] += self.KC * corr
-                
-    def point_in_triangle(self, p, v1, v2, v3):
-        # Compute vectors
-        v0 = v3 - v1
-        v1_vec = v2 - v1
-        v2_vec = p - v1
-        
-        # Compute dot products
-        dot00 = np.dot(v0, v0)
-        dot01 = np.dot(v0, v1_vec)
-        dot02 = np.dot(v0, v2_vec)
-        dot11 = np.dot(v1_vec, v1_vec)
-        dot12 = np.dot(v1_vec, v2_vec)
-        
-        # Compute barycentric coordinates
-        inv_denom = 1.0 / (dot00 * dot11 - dot01 * dot01 + 1e-6)
-        u = (dot11 * dot02 - dot01 * dot12) * inv_denom
-        v = (dot00 * dot12 - dot01 * dot02) * inv_denom
-        
-        # Check if point is in triangle
-        return (u >= -1e-6) and (v >= -1e-6) and (u + v <= 1 + 1e-6)
-                
-    def resolve_self_collsion(self, p, x, a, b, c):
-        p_is_inside = self.point_in_triangle(p, a, b, c)
-        x_is_inside = self.point_in_triangle(x, a, b, c)
-        
-        if not p_is_inside:
-            return False, None, None
-        
-        elif x_is_inside:
-            # find the closest point on the triangle
-            penetration_depth = float('inf')
-            closest_normal = None
-            
-            edges = [(a, b), (b, c), (c, a)]
-            for e1, e2 in edges:
-                edge_vec = e2 - e1
-                edge_len = np.linalg.norm(edge_vec)
-                if edge_len < 1e-6:
-                    continue
-                
-                dist = np.linalg.norm(np.cross(edge_vec, e1 - p)) / edge_len
-                
-                if dist < penetration_depth:
-                    penetration_depth = dist
-                    normal = (p - e1) - np.dot((p - e1), edge_vec) * edge_vec / edge_len
-                    if np.linalg.norm(normal) > 1e-6:
-                        closest_normal = normal / np.linalg.norm(normal)
-                        
-            if closest_normal is None:
-                return False, None, None
-                    
-            return True, closest_normal, penetration_depth
-            
-        else:
-            # find penetrated edge
-            edges = [(a, b), (b, c), (c, a)]
-            for e1, e2 in edges:
-                xp = p - x
-                ab = e2 - e1
-                ax = x - e1
-            
-                det = -xp[0] * ab[1] + xp[1] * ab[0]
-                if abs(det) < 1e-6:
-                    continue
-            
-                t = (ax[0] * ab[1] - ax[1] * ab[0]) / det
-                k = (-xp[0] * ax[1] + xp[1] * ax[0]) / det
-                
-                # penetration
-                if 0 < t < 1 and 0 < k < 1:
-                    normal = np.array([-ab[1], ab[0]])
-                    if np.dot(normal, xp) > 0:
-                        normal = -normal
-                    normal /= np.linalg.norm(normal)
-                    penetration_depth = -np.dot(normal, xp)
-                    
-                    return True, normal, penetration_depth
-            
-            return False, None, None
-    
+
     def solve_self_collision_constraints(self, iterations):
         for i in range(self.num_x):
             for j in range(self.num_y):
                 # current point
                 p = self.p[i, j]
-                x = self.x[i, j]
                 
-                for tri in self.triangles:
-                    idx1, idx2, idx3 = tri
-                    
-                    # TODO: filter out some traingles
-                    if (i, j) in tri:
-                        continue
-                    
-                    v1, v2, v3 = [self.p[i1, j1] for i1, j1 in tri]
-                    
-                    # FIXME: do we need to check this??
-                    # v1o, v2o, v3o = [self.x[i1, j1] for i1, j1 in tri]
-                    
-                    min_x = min(v1[0], v2[0], v3[0])
-                    max_x = max(v1[0], v2[0], v3[0])
-                    min_y = min(v1[1], v2[1], v3[1])
-                    max_y = max(v1[1], v2[1], v3[1])
-                    
-                    margin = self.spacing * 0.5
-                    if (p[0] < min_x - margin or p[0] > max_x + margin or 
-                        p[1] < min_y - margin or p[1] > max_y + margin):
-                        continue
-                    
-                    penetrate, normal, depth = self.resolve_self_collsion(p, x, v1, v2, v3)
-                    
-                    if penetrate and depth > 0:
-                        # apply correction
-                        delta = normal * depth
-                        self.p[i, j] += self.KC * delta * 3 / 4
-                        self.p[idx1] -= self.KC * delta / 4
-                        self.p[idx2] -= self.KC * delta / 4
-                        self.p[idx3] -= self.KC * delta / 4
-                        # breakpoint()
+                # Check against all other points
+                for i2 in range(self.num_x):
+                    for j2 in range(self.num_y):
+                        # Skip self
+                        if i == i2 and j == j2:
+                            continue
+                        
+                        # Skip immediate neighbors (connected by constraints)
+                        if (abs(i - i2) <= 1 and abs(j - j2) <= 1):
+                            continue
+                        
+                        p2 = self.p[i2, j2]
+                        
+                        # Get vector between points
+                        delta = p - p2
+                        dist = np.linalg.norm(delta)
+                        
+                        # If distance is less than twice the collision radius (overlapping)
+                        min_dist = self.collision_radius * 2
+                        if dist < min_dist and dist > 1e-6:
+                            # Direction from other point to this point
+                            dir_vec = delta / dist
+                            
+                            # Calculate correction to push particles apart to minimum distance
+                            correction = (min_dist - dist) * dir_vec * 0.5
+                            
+                            # Apply correction to both particles
+                            self.p[i, j] += self.KC * correction
+                            self.p[i2, j2] -= self.KC * correction
