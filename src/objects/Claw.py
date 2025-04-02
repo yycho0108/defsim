@@ -24,10 +24,10 @@ class Claw(Square):
         
         if not hasattr(self, 'square_shape'):
             self.border_shape = shapes.Rectangle(
-                x = (cx - half_w) * scale + offset - 5,
-                y = (cy - half_h) * scale + offset - 5,
-                width = self.size[0] * scale + 10,
-                height = self.size[1] * scale + 10,
+                x = (cx - half_w) * scale + offset - 10,
+                y = (cy - half_h) * scale + offset - 10,
+                width = self.size[0] * scale + 20,
+                height = self.size[1] * scale + 20,
                 color = b255,
                 batch = scene
             )
@@ -49,8 +49,8 @@ class Claw(Square):
                 batch = scene
             )
         else:
-            self.border_shape.x = (cx - half_w) * scale + offset - 5
-            self.border_shape.y = (cy - half_h) * scale + offset - 5
+            self.border_shape.x = (cx - half_w) * scale + offset - 10
+            self.border_shape.y = (cy - half_h) * scale + offset - 10
             self.border_shape.color = b255
             
             self.square_shape.x = (cx - half_w) * scale + offset
@@ -69,7 +69,7 @@ class Claw(Square):
 
     def toggle_active(self):
         self.active = not self.active
-        self.border_color = (1, 0, 0) if self.active else (0, 0, 0)
+        self.border_color = (0, 1, 0) if self.active else (0, 0, 0)
         
     # Just to prevent claw collide with objects (PBD X)
     def check_claw_collision(self, object, cx, cy):
