@@ -29,7 +29,7 @@ class ClawSimulation(Simulation):
         if symbol in self.key_state:
             self.key_state[symbol] = False
 
-    def update_claw(self):
+    def move_claw(self):
         dx, dy = 0, 0
         if self.key_state[key.W] or self.key_state[key.UP]:
             dy += self.move_speed
@@ -93,7 +93,7 @@ class ClawSimulation(Simulation):
                         )
 
     def update(self, dt):
-        super().update(dt)
         if self.claw:
-            self.update_claw()
+            self.move_claw()
             self.attract_particles()
+        super().update(dt)
