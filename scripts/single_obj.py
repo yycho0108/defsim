@@ -13,9 +13,9 @@ from objects.Circle import Circle
 def main():
     sim = Simulation("single object", dt=0.001, iterations=5, selfCollision=True)
     
-    # add def_obj
+    # set def_obj
     def_obj = DefObject(num=(5, 5), spacing=0.05, origin=(0.0, 0.0), KS=1.0, KC=1.0)
-    sim.add_def_object(def_obj)
+    sim.set_def_object(def_obj)
 
     # add line
     line = Line(center=(0.0, -0.5), normal=(0,1), color=(0.3, 0.3, 0.3))

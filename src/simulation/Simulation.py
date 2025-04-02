@@ -33,7 +33,7 @@ class Simulation:
         pyglet.gl.glClearColor(1,1,1,1)
 
         # objects on the scene
-        self.def_objects = []
+        self.def_object = None
         self.objects = []
         
         # Create a Batch to draw the scene
@@ -55,34 +55,29 @@ class Simulation:
         self.WIND = np.array(force, dtype=np.float32)
 
     """
-    adds object to the scene
+    set deformable object to the scene
         obj: DefObject
     """
-    def add_def_object(self, obj):
-        self.def_objects.append(obj)
+    def set_def_object(self, obj):
+        self.def_object = obj
 
     """
     CORE PDB algorithm
     """
-    def update_def_obj(self, def_obj):
-        def_obj.external_forces(self.GRAVITY, self.WIND, self.DT)
+    def update(self, dt):
+        self.def_object.external_forces(self.GRAVITY, self.WIND, self.DT)
         
-        def_obj.make_predictions(self.DT)
+        self.def_object.make_predictions(self.DT)
         
         for i in range(self.NUM_ITERATIONS):
             for o in self.objects:
-                def_obj.solve_collision_constraints(o)
-            def_obj.solve_stretching_constraint(self.NUM_ITERATIONS)
-            # def_obj.solve_bending_constraints(self.NUM_ITERATIONS)
+                self.def_object.solve_collision_constraints(o)
+            self.def_object.solve_stretching_constraint(self.NUM_ITERATIONS)
+            # def_object.solve_bending_constraints(self.NUM_ITERATIONS)
             if self.selfCollision:
-                def_obj.solve_self_collision_constraints(self.NUM_ITERATIONS)
+                self.def_object.solve_self_collision_constraints(self.NUM_ITERATIONS)
                 
-        def_obj.apply_correction(self.DT)
-
-    def update(self, dt):
-        # Update each def object
-        for def_obj in self.def_objects:
-            self.update_def_obj(def_obj)
+        self.def_object.apply_correction(self.DT)
 
     def on_draw(self):
         self.window.clear()
@@ -91,9 +86,8 @@ class Simulation:
         for obj in self.objects:
             obj.draw(self.scene, self.scale, self.offset)
 
-        # Draw all def objects
-        for def_obj in self.def_objects:
-            def_obj.draw(self.scene, self.scale, self.offset)
+        # Draw def object
+        self.def_object.draw(self.scene, self.scale, self.offset)
             
         # Render the complete scene
         self.scene.draw()
