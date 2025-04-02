@@ -17,9 +17,9 @@ def main():
     claw = Claw(center=(-0.5, 0.0), size=(0.3, 0.1), color=(0, 0, 0))
     sim.add_claw(claw)
     
-    # add doll
+    # set doll
     doll = DefObject(num=(5, 5), spacing=0.05, origin=(-0.5, -0.8), KS=1.0, KC=1.0)
-    sim.add_def_object(doll)
+    sim.set_def_object(doll)
 
     # add walls
     walls = []

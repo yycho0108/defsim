@@ -16,10 +16,11 @@ class DefObject:
         self.KC = KC   # Collision
         self.DAMPING = DAMPING
 
-        self.x = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)    # positions
-        self.p = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)    # predicted positions
-        self.v = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)    # velocities
-        self.dv = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)   # delta velocities
+        self.x = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # positions
+        self.p = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # predicted positions
+        self.v = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # velocities
+        self.dv = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)           # delta velocities
+        self.ext_force = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)    # external forces
         self.reset_pos()
                 
         # initialize stretch constraints
@@ -97,7 +98,9 @@ class DefObject:
     def external_forces(self, G, wind, DT):
         self.dv[:, :, 1] += G * DT
         self.dv += wind * DT
+        self.dv += self.ext_force * DT
         self.v += self.DAMPING * self.dv
+        self.ext_force.fill(0)
 
     def make_predictions(self, DT):
         self.p = self.x + DT * self.v

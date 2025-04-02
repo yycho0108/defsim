@@ -94,5 +94,4 @@ class Claw(Square):
             return True
         
         else:
-            breakpoint()
             raise NotImplementedError("Collision check for this object type is not implemented.")

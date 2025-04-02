@@ -1,3 +1,4 @@
+import numpy as np
 from pyglet.window import key
 from .Simulation import Simulation
 
@@ -5,8 +6,9 @@ class ClawSimulation(Simulation):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
         self.move_speed = 0.01
+        self.attract_force = 10.0
+        self.attract_radius = 1.0
         self.key_state = {key.W: False, key.S: False, key.A: False, key.D: False, key.UP: False, key.DOWN: False, key.LEFT: False, key.RIGHT: False}
-
 
         self.window.push_handlers(on_key_press=self.on_key_press)
         self.window.push_handlers(on_key_release=self.on_key_release)
@@ -47,8 +49,20 @@ class ClawSimulation(Simulation):
                 return
         
         self.claw.move(dx, dy)
+        
+    def attract_particles(self):
+        if self.claw.active:            
+            for i in range(self.def_object.num_x):
+                for j in range(self.def_object.num_y):
+                    p = self.def_object.p[i, j]
+                    dist = np.linalg.norm(self.claw.center - p)
+                    if dist < self.attract_radius:
+                        force = self.attract_force / (dist ** 2)
+                        direction = (self.claw.center - p) / dist
+                        self.def_object.ext_force[i, j] = force * direction
 
     def update(self, dt):
         super().update(dt)
         if self.claw:
             self.update_claw()
+            self.attract_particles()
