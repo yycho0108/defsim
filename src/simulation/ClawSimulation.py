@@ -8,7 +8,7 @@ class ClawSimulation(Simulation):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
         self.move_speed = 0.015
-        self.attract_stiffness = 0.001
+        self.attract_stiffness = 0.002
         self.attract_radius = 1.0
         self.key_state = {key.W: False, key.S: False, key.A: False, key.D: False,
                         key.UP: False, key.DOWN: False, key.LEFT: False, key.RIGHT: False}
