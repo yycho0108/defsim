@@ -7,10 +7,11 @@ from .Simulation import Simulation
 class ClawSimulation(Simulation):
     def __init__(self, name, **kwargs):
         super().__init__(name, **kwargs)
-        self.move_speed = 0.01
-        self.attract_force = 10.0
+        self.move_speed = 0.015
+        self.attract_stiffness = 0.001
         self.attract_radius = 1.0
-        self.key_state = {key.W: False, key.S: False, key.A: False, key.D: False, key.UP: False, key.DOWN: False, key.LEFT: False, key.RIGHT: False}
+        self.key_state = {key.W: False, key.S: False, key.A: False, key.D: False,
+                        key.UP: False, key.DOWN: False, key.LEFT: False, key.RIGHT: False}
 
         self.window.push_handlers(on_key_press=self.on_key_press)
         self.window.push_handlers(on_key_release=self.on_key_release)
@@ -52,16 +53,18 @@ class ClawSimulation(Simulation):
         
         self.claw.move(dx, dy)
         
-    def attract_particles(self):
-        if self.claw.active:            
-            for i in range(self.def_object.num_x):
-                for j in range(self.def_object.num_y):
-                    p = self.def_object.p[i, j]
-                    dist = np.linalg.norm(self.claw.center - p)
-                    if dist < self.attract_radius:
-                        force = self.attract_force / (dist ** 2)
-                        direction = (self.claw.center - p) / dist
-                        self.def_object.ext_force[i, j] = force * direction
+    def solve_claw_attraction_constraint(self, iterations):
+        if not self.claw.active:
+            return
+        claw_pos = self.claw.center
+        for i in range(self.def_object.num_x):
+            for j in range(self.def_object.num_y):
+                p = self.def_object.p[i, j]
+                dist = np.linalg.norm(p - claw_pos)
+                if dist < self.attract_radius and dist > 1e-6:
+                    delta = claw_pos - p
+                    correction = delta * self.attract_stiffness
+                    self.def_object.p[i, j] += correction
                         
     def on_draw(self):
         super().on_draw()
@@ -95,5 +98,4 @@ class ClawSimulation(Simulation):
     def update(self, dt):
         if self.claw:
             self.move_claw()
-            self.attract_particles()
         super().update(dt)
