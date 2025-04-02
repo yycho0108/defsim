@@ -5,17 +5,6 @@ import pyglet
 from pyglet import shapes
 from .Object import Object
 
-def make_rotation_matrix(angle_radians):
-    """
-    Returns a 2x2 rotation matrix for given angle in radians.
-    R = [[ cosθ, -sinθ ],
-         [ sinθ,  cosθ ]]
-    """
-    c = np.cos(angle_radians)
-    s = np.sin(angle_radians)
-    return np.array([[c, -s],
-                     [s,  c]], dtype=np.float32)
-
 class Square(Object):
     """
     inits a Square
@@ -25,17 +14,12 @@ class Square(Object):
             contains x size, y size of the square
         color : tuple(r, g, b) , optional
             rgb color of the square
-        rotation : float
-            counter clockwise rotation in degrees
     """
-    def __init__(self, center, size, color=(0, 0, 0), drest=0.01, rotation=0.0):
+    def __init__(self, center, size, color=(0, 0, 0), drest=0.01):
         self.center = np.array(center, dtype=np.float32)
         self.size = size
         self.color = color
         self.drest = drest
-        
-        self.rotation = rotation
-        self.R = make_rotation_matrix(self.rotation)
 
     """
     @OVERRIDE
@@ -57,7 +41,6 @@ class Square(Object):
                 color = c255,
                 batch = scene
             )
-            self.square_shape.rotation = -self.rotation
         else:
             self.square_shape.x = (cx - half_w) * scale + offset
             self.square_shape.y = (cy - half_h) * scale + offset
@@ -70,8 +53,8 @@ class Square(Object):
     """
     def solve_collision_constraint(self, p, x):
         cp = p - self.center
-        w = self.R @ np.array([self.size[0]/2, 0])
-        h = self.R @ np.array([0, self.size[1]/2])
+        w = np.array([self.size[0]/2, 0])
+        h = np.array([0, self.size[1]/2])
         what = w / np.linalg.norm(w)
         hhat = h / np.linalg.norm(h)
         

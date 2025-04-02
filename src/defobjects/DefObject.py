@@ -4,8 +4,8 @@ import numpy as np
 from math import sqrt, acos
 import pyglet
 
-class Cloth:
-    def __init__(self, num, spacing, origin, line_color=(0, 0, 1), point_color=(1, 0, 0), KS=0.6, KC=0.4, DAMPING=0.9):
+class DefObject:
+    def __init__(self, num, spacing, origin, line_color=(0, 0, 1), point_color=(1, 0, 0), KS=1.0, KC=1.0, DAMPING=0.9):
         self.num_x = num[0]
         self.num_y = num[1]
         self.spacing = spacing
@@ -141,6 +141,8 @@ class Cloth:
             
             delta = p2 - p1
             curr_len = np.linalg.norm(delta)
+            if curr_len < 1e-6:
+                continue
             n = delta / curr_len
             
             lagrange = (curr_len - rest_len) / 2
@@ -271,8 +273,8 @@ class Cloth:
                     if penetrate and depth > 0:
                         # apply correction
                         delta = normal * depth
-                        self.p[i, j] += self.KC * delta
-                        self.p[idx1] -= self.KC * delta / 3
-                        self.p[idx2] -= self.KC * delta / 3
-                        self.p[idx3] -= self.KC * delta / 3
+                        self.p[i, j] += self.KC * delta * 3 / 4
+                        self.p[idx1] -= self.KC * delta / 4
+                        self.p[idx2] -= self.KC * delta / 4
+                        self.p[idx3] -= self.KC * delta / 4
                         # breakpoint()

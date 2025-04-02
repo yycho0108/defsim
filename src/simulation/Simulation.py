@@ -33,7 +33,7 @@ class Simulation:
         pyglet.gl.glClearColor(1,1,1,1)
 
         # objects on the scene
-        self.clothes = []
+        self.def_objects = []
         self.objects = []
         
         # Create a Batch to draw the scene
@@ -47,7 +47,6 @@ class Simulation:
     """
     adds object to the scene
         obj: Object
-            scene object Object.py
     """
     def add_object(self, obj):
         self.objects.append(obj)
@@ -57,34 +56,33 @@ class Simulation:
 
     """
     adds object to the scene
-        cloth: Cloth
-            cloth Cloth.py
+        obj: DefObject
     """
-    def add_cloth(self, cloth):
-        self.clothes.append(cloth)
+    def add_def_object(self, obj):
+        self.def_objects.append(obj)
 
     """
     CORE PDB algorithm
     """
-    def update_cloth(self, c):
-        c.external_forces(self.GRAVITY, self.WIND, self.DT)
+    def update_def_obj(self, def_obj):
+        def_obj.external_forces(self.GRAVITY, self.WIND, self.DT)
         
-        c.make_predictions(self.DT)
+        def_obj.make_predictions(self.DT)
         
         for i in range(self.NUM_ITERATIONS):
             for o in self.objects:
-                c.solve_collision_constraints(o)
-            c.solve_stretching_constraint(self.NUM_ITERATIONS)
-            # c.solve_bending_constraints(self.NUM_ITERATIONS)
+                def_obj.solve_collision_constraints(o)
+            def_obj.solve_stretching_constraint(self.NUM_ITERATIONS)
+            # def_obj.solve_bending_constraints(self.NUM_ITERATIONS)
             if self.selfCollision:
-                c.solve_self_collision_constraints(self.NUM_ITERATIONS)
+                def_obj.solve_self_collision_constraints(self.NUM_ITERATIONS)
                 
-        c.apply_correction(self.DT)
+        def_obj.apply_correction(self.DT)
 
     def update(self, dt):
-        # Update each cloth object
-        for c in self.clothes:
-            self.update_cloth(c)
+        # Update each def object
+        for def_obj in self.def_objects:
+            self.update_def_obj(def_obj)
 
     def on_draw(self):
         self.window.clear()
@@ -93,10 +91,10 @@ class Simulation:
         for obj in self.objects:
             obj.draw(self.scene, self.scale, self.offset)
 
-        # Draw all clothes
-        for cloth in self.clothes:
-            cloth.draw(self.scene, self.scale, self.offset)
-
+        # Draw all def objects
+        for def_obj in self.def_objects:
+            def_obj.draw(self.scene, self.scale, self.offset)
+            
         # Render the complete scene
         self.scene.draw()
 

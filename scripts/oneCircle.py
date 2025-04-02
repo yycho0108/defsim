@@ -4,7 +4,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
-from simulation.simulation import Simulation
+from simulation.Simulation import Simulation
 from clothes.Cloth import Cloth
 from objects.Circle import Circle
 from objects.Line import Line
