@@ -8,7 +8,7 @@ class Claw(Square):
     def __init__(self, center, size, color=(0, 0, 0)):
         super().__init__(center, size, color)
         self.active = False
-        self.original_color = color
+        self.border_color = (0, 0, 0)
 
     """
     @OVERRIDE
@@ -20,8 +20,17 @@ class Claw(Square):
         cx, cy = self.center
         half_w, half_h = self.size[0]/2, self.size[1]/2
         c255 = tuple(int(c * 255) for c in self.color)
+        b255 = tuple(int(c * 255) for c in self.border_color)
         
         if not hasattr(self, 'square_shape'):
+            self.border_shape = shapes.Rectangle(
+                x = (cx - half_w) * scale + offset - 5,
+                y = (cy - half_h) * scale + offset - 5,
+                width = self.size[0] * scale + 10,
+                height = self.size[1] * scale + 10,
+                color = b255,
+                batch = scene
+            )
             self.square_shape = shapes.Rectangle(
                 x = (cx - half_w) * scale + offset,
                 y = (cy - half_h) * scale + offset,
@@ -40,6 +49,10 @@ class Claw(Square):
                 batch = scene
             )
         else:
+            self.border_shape.x = (cx - half_w) * scale + offset - 5
+            self.border_shape.y = (cy - half_h) * scale + offset - 5
+            self.border_shape.color = b255
+            
             self.square_shape.x = (cx - half_w) * scale + offset
             self.square_shape.y = (cy - half_h) * scale + offset
             self.square_shape.color = c255
@@ -56,7 +69,7 @@ class Claw(Square):
 
     def toggle_active(self):
         self.active = not self.active
-        self.color = (0, 1, 0) if self.active else self.original_color
+        self.border_color = (1, 0, 0) if self.active else (0, 0, 0)
         
     # Just to prevent claw collide with objects (PBD X)
     def check_claw_collision(self, object, cx, cy):
@@ -73,10 +86,17 @@ class Claw(Square):
             return not (claw_left > rect_right or claw_right < rect_left or claw_bottom > rect_top or claw_top < rect_bottom)
         
         elif isinstance(object, Circle):
-            nearest_x = max(claw_left, min(cx, claw_right))
-            nearest_y = max(claw_bottom, min(cy, claw_top))
-            distance = np.sqrt((nearest_x - cx) ** 2 + (nearest_y - cy) ** 2)
-            return distance < self.radius
+            circle_x, circle_y = object.center
+            radius = object.radius
+            
+            closest_x = max(claw_left, min(circle_x, claw_right))
+            closest_y = max(claw_bottom, min(circle_y, claw_top))
+            
+            distance_x = circle_x - closest_x
+            distance_y = circle_y - closest_y
+            distance_squared = distance_x ** 2 + distance_y ** 2
+            
+            return distance_squared <= radius ** 2
         
         elif isinstance(object, Line):
             corners = [

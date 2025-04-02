@@ -1,4 +1,6 @@
 import numpy as np
+import pyglet
+from pyglet import shapes
 from pyglet.window import key
 from .Simulation import Simulation
 
@@ -60,6 +62,35 @@ class ClawSimulation(Simulation):
                         force = self.attract_force / (dist ** 2)
                         direction = (self.claw.center - p) / dist
                         self.def_object.ext_force[i, j] = force * direction
+                        
+    def on_draw(self):
+        super().on_draw()
+        
+        if self.claw and self.claw.active:
+            claw_pos = self.claw.center
+            claw_screen = (claw_pos[0] * self.scale + self.offset, 
+                        claw_pos[1] * self.scale + self.offset)
+            
+            # Enable transparency
+            pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
+            pyglet.gl.glBlendFunc(pyglet.gl.GL_SRC_ALPHA, pyglet.gl.GL_ONE_MINUS_SRC_ALPHA)
+            
+            for i in range(self.def_object.num_x):
+                for j in range(self.def_object.num_y):
+                    p = self.def_object.p[i, j]
+                    dist = np.linalg.norm(p - claw_pos)
+                    if dist < self.attract_radius:
+                        p_screen = (p[0] * self.scale + self.offset, 
+                                    p[1] * self.scale + self.offset)
+                        
+                        # RGBA color (red with 50% opacity)
+                        color = (0, 0, 0, 10)
+                        
+                        # Draw line with custom vertex list
+                        pyglet.graphics.draw(2, pyglet.gl.GL_LINES,
+                            ('v2f', (*p_screen, *claw_screen)),
+                            ('c4B', color * 2)  # Repeat color for both vertices
+                        )
 
     def update(self, dt):
         super().update(dt)

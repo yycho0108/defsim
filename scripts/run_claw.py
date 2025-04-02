@@ -8,6 +8,7 @@ from simulation.ClawSimulation import ClawSimulation
 from defobjects.DefObject import DefObject
 from objects.Line import Line
 from objects.Square import Square
+from objects.Circle import Circle
 from objects.Claw import Claw
 
 def main():
@@ -18,7 +19,8 @@ def main():
     sim.add_claw(claw)
     
     # set doll
-    doll = DefObject(num=(5, 5), spacing=0.05, origin=(-0.5, -0.8), KS=1.0, KC=1.0)
+    # doll = DefObject(num=(5, 5), spacing=0.05, origin=(-0.5, -0.8), KS=1.0, KC=1.0)
+    doll = DefObject(num=(5, 5), spacing=0.05, origin=(0.5, 0.5), KS=0.8, KC=1.0)
     sim.set_def_object(doll)
 
     # add walls
@@ -29,14 +31,19 @@ def main():
     for wall in walls:
         sim.add_object(wall)
     
-    # add squares (gate)
+    # add squares (basket)
     squares = []
-    squares.append(Square(center=(0.1, -0.8), size=(0.2, 0.4), color=(0, 0, 1)))
-    squares.append(Square(center=(0.2, -0.5), size=(0.4, 0.2), color=(0, 0, 1)))
-    squares.append(Square(center=(0.8, -0.5), size=(0.4, 0.2), color=(0, 0, 1)))
-    squares.append(Square(center=(0.9, -0.8), size=(0.2, 0.4), color=(0, 0, 1)))
+    squares.append(Square(center=(0.1, -0.7), size=(0.2, 0.6), color=(0, 0, 1)))
+    squares.append(Square(center=(0.9, -0.7), size=(0.2, 0.6), color=(0, 0, 1)))
     for square in squares:
         sim.add_object(square)
+        
+    # add circles (gate)
+    circles = []
+    circles.append(Circle(center=(0.22, -0.4), radius=0.22, color=(0, 1, 0)))
+    circles.append(Circle(center=(0.78, -0.4), radius=0.22, color=(0, 1, 0)))
+    for circle in circles:
+        sim.add_object(circle)
     
     # sim.set_wind((1.0, 0.0))
     
