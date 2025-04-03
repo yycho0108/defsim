@@ -18,16 +18,21 @@ class DefObject:
         self.x = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # positions
         self.p = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # predicted positions
         self.v = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # velocities
-        self.dv = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)           # delta velocities
+        self.a = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # acceleration
         self.reset_pos()
                 
         # initialize stretch constraints
-        self.edges = []
         self.build_edges()
         
         # draw buffers
         self._line_positions = np.zeros((len(self.edges)*2, 2), dtype=np.float32)
         self._point_positions = np.zeros((self.num_x * self.num_y, 2), dtype=np.float32)
+
+        self.make_predictions_func = None
+        self.apply_correction_func = None
+
+        self.solve_stretching_constraint_func = None
+        self.solve_self_collision_constraints_func = None
 
     """
     draws the object
@@ -96,23 +101,24 @@ class DefObject:
                 self.p[i, j] = self.x[i, j]
                 self.v[i, j] = np.zeros(2, dtype=np.float32)
 
+    def set_make_predictions_func(self, func):
+        self.make_predictions_func = func
 
-    def external_forces(self, G, WIND, DT):
-        # self.dv.fill(0)
-        self.dv[:, :, 1] += G * DT
-        self.dv += WIND * DT
-        self.v += self.dv
+    def make_predictions(self, G, DT):
+        # copy to avoid modifying in place
+        if self.make_predictions_func is not None:
+            self.p, self.v, self.a = self.make_predictions_func(self.x.copy(), self.v.copy(), self.a.copy(), G, DT)
 
-    def make_predictions(self, DT):
-        self.p = self.x + DT * self.v
+    def set_apply_correction_func(self, func):
+        self.apply_correction_func = func
 
     def apply_correction(self, DT):
-        for i in range(self.num_x):
-            for j in range(self.num_y):
-                self.v[i, j] = (self.p[i, j] - self.x[i, j]) / DT
-                self.x[i, j] = self.p[i, j]
+        # copy to avoid modifying in place
+        if self.apply_correction_func is not None:
+            self.x, self.v = self.apply_correction_func(self.x.copy(), self.p.copy(), DT)
                 
     def build_edges(self):
+        self.edges = []
         for i in range(self.num_x):
             for j in range(self.num_y):
                 if i < self.num_x - 1:
@@ -137,23 +143,13 @@ class DefObject:
                     rest_len = np.linalg.norm(p2 - p1)
                     self.edges.append(((i, j), (i+1, j-1), rest_len))
 
+    def set_solve_stretching_constraint_func(self, func):
+        self.solve_stretching_constraint_func = func
+
     def solve_stretching_constraint(self, iterations):
-        KS = self.KS ** iterations
-        
-        for (i1, j1), (i2, j2), rest_len in self.edges:
-            p1 = self.p[i1, j1]
-            p2 = self.p[i2, j2]
-            
-            delta = p2 - p1
-            curr_len = np.linalg.norm(delta)
-            if curr_len < 1e-6:
-                continue
-            n = delta / curr_len
-            
-            lagrange = (curr_len - rest_len) / 2
-            
-            self.p[i1, j1] += KS * lagrange * n
-            self.p[i2, j2] -= KS * lagrange * n
+        if self.solve_stretching_constraint_func is not None:
+            KS = self.KS ** iterations
+            self.p = self.solve_stretching_constraint_func(self.p.copy(), self.edges.copy(), KS)
 
     def solve_collision_constraints(self, obj):
         for i in range(self.num_x):
@@ -162,38 +158,9 @@ class DefObject:
                 corr = obj.solve_collision_constraint(p, self.collision_radius)
                 self.p[i, j] += self.KC * corr
 
+    def set_solve_self_collision_constraints_func(self, func):
+        self.solve_self_collision_constraints_func = func
+
     def solve_self_collision_constraints(self, iterations):
-        for i in range(self.num_x):
-            for j in range(self.num_y):
-                # current point
-                p = self.p[i, j]
-                
-                # Check against all other points
-                for i2 in range(self.num_x):
-                    for j2 in range(self.num_y):
-                        # Skip self
-                        if i == i2 and j == j2:
-                            continue
-                        
-                        # Skip immediate neighbors (connected by constraints)
-                        if (abs(i - i2) <= 1 and abs(j - j2) <= 1):
-                            continue
-                        
-                        p2 = self.p[i2, j2]
-                        
-                        # Get vector between points
-                        delta = p - p2
-                        dist = np.linalg.norm(delta)
-                        
-                        # If distance is less than twice the collision radius (overlapping)
-                        min_dist = self.collision_radius * 2
-                        if dist < min_dist and dist > 1e-6:
-                            # Direction from other point to this point
-                            dir_vec = delta / dist
-                            
-                            # Calculate correction to push particles apart to minimum distance
-                            correction = (min_dist - dist) * dir_vec * 0.5
-                            
-                            # Apply correction to both particles
-                            self.p[i, j] += self.KC * correction
-                            self.p[i2, j2] -= self.KC * correction
+        if self.solve_self_collision_constraints_func is not None:
+            self.p = self.solve_self_collision_constraints_func(self.p.copy(), self.collision_radius, self.KC)

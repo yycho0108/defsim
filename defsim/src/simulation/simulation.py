@@ -66,8 +66,7 @@ class Simulation:
     CORE PDB algorithm
     """
     def update(self, dt):
-        self.def_object.external_forces(self.GRAVITY, self.WIND, self.DT)
-        self.def_object.make_predictions(self.DT)
+        self.def_object.make_predictions(self.GRAVITY, self.DT)
         
         for i in range(self.NUM_ITERATIONS):
             if hasattr(self, 'claw'):
