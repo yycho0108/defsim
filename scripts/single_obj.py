@@ -11,7 +11,7 @@ from objects.Square import Square
 from objects.Circle import Circle
 
 def main():
-    sim = Simulation("single object", dt=0.001, iterations=5, selfCollision=True)
+    sim = Simulation("single object", dt=0.0005, iterations=5, selfCollision=True)
     
     # set def_obj
     def_obj = DefObject(num=(5, 5), spacing=0.05, origin=(0.0, 0.0), KS=1.0, KC=1.0)

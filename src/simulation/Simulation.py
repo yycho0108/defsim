@@ -16,7 +16,7 @@ class Simulation:
         res: tuple(width, height)
             window size in pixels
     """
-    def __init__(self, name, gravity=-10, dt=0.005, window_size=1500, world_size=2.0, iterations=4, selfCollision=True):
+    def __init__(self, name, gravity=-10, dt=0.005, window_size=1500, world_size=2.0, iterations=5, selfCollision=True):
         # simulation properties
         self.name = name
         self.GRAVITY = gravity

@@ -93,11 +93,11 @@ class DefObject:
                 self.v[i, j] = np.zeros(2, dtype=np.float32)
 
 
-    def external_forces(self, G, wind, DT):
-        self.dv[:, :, 1] += G * DT
-        self.dv += wind * DT
-        self.v += self.dv # * DT
+    def external_forces(self, G, WIND, DT):
         # self.dv.fill(0)
+        self.dv[:, :, 1] += G * DT
+        self.dv += WIND * DT
+        self.v += self.dv
 
     def make_predictions(self, DT):
         self.p = self.x + DT * self.v
