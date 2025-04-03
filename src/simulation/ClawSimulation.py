@@ -60,9 +60,9 @@ class ClawSimulation(Simulation):
         for i in range(self.def_object.num_x):
             for j in range(self.def_object.num_y):
                 p = self.def_object.p[i, j]
-                dist = np.linalg.norm(p - claw_pos)
+                delta = claw_pos - p
+                dist = np.linalg.norm(delta)
                 if dist < self.attract_radius and dist > 1e-6:
-                    delta = claw_pos - p
                     correction = delta * self.attract_stiffness
                     self.def_object.p[i, j] += correction
                         

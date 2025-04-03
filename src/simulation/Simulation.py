@@ -71,9 +71,12 @@ class Simulation:
         for i in range(self.NUM_ITERATIONS):
             if hasattr(self, 'claw'):
                 self.solve_claw_attraction_constraint(self.NUM_ITERATIONS)
+                
             for o in self.objects:
                 self.def_object.solve_collision_constraints(o)
+                
             self.def_object.solve_stretching_constraint(self.NUM_ITERATIONS)
+            
             if self.selfCollision:
                 self.def_object.solve_self_collision_constraints(self.NUM_ITERATIONS)
                 
