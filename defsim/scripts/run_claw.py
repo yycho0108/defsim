@@ -7,7 +7,7 @@ from objects import Line, Square, Circle, Claw, DefObject
 
 @dataclass
 class AppConfig(Config):
-    window_size: int = 300
+    window_size: tuple[int, int] = (2000, 1500)
     dt: float = 0.0005
     iterations:int = 5
     self_collision: bool = True
@@ -33,9 +33,9 @@ def main(cfg: AppConfig = AppConfig()):
 
     # add walls
     walls = []
-    walls.append(Line(center=(0.0, -1.0), normal=(0,1), color=(1, 0, 0)))
-    walls.append(Line(center=(-1.0, 0.0), normal=(1,0), color=(1, 0, 0)))
-    walls.append(Line(center=(1.0, 0.0), normal=(-1,0), color=(1, 0, 0)))
+    walls.append(Line(center=(0.0, -sim.world_height/2), normal=(0,1), color=(1, 0, 0)))
+    walls.append(Line(center=(-sim.world_width/2, 0.0), normal=(1,0), color=(1, 0, 0)))
+    walls.append(Line(center=(sim.world_width/2, 0.0), normal=(-1,0), color=(1, 0, 0)))
     for wall in walls:
         sim.add_object(wall)
     

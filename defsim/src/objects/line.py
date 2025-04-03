@@ -34,19 +34,19 @@ class Line(Object):
         if not hasattr(self, 'line_shape'):
             c255 = tuple(int(c * 255) for c in self.color)
             self.line_shape = shapes.Line(
-                x = p1[0] * scale + offset,
-                y = p1[1] * scale + offset,
-                x2 = p2[0] * scale + offset,
-                y2 = p2[1] * scale + offset,
+                x = p1[0] * scale + offset[0],
+                y = p1[1] * scale + offset[1],
+                x2 = p2[0] * scale + offset[0],
+                y2 = p2[1] * scale + offset[1],
                 width = 10,
                 color = c255,
                 batch = scene
             )
         else:
-            self.line_shape.x = p1[0] * scale + offset
-            self.line_shape.y = p1[1] * scale + offset
-            self.line_shape.x2 = p2[0] * scale + offset
-            self.line_shape.y2 = p2[1] * scale + offset
+            self.line_shape.x = p1[0] * scale + offset[0]
+            self.line_shape.y = p1[1] * scale + offset[1]
+            self.line_shape.x2 = p2[0] * scale + offset[0]
+            self.line_shape.y2 = p2[1] * scale + offset[1]
 
     """
     @OVERRIDE

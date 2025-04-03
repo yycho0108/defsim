@@ -24,43 +24,43 @@ class Claw(Square):
         
         if not hasattr(self, 'square_shape'):
             self.border_shape = shapes.Rectangle(
-                x = (cx - half_w) * scale + offset - 10,
-                y = (cy - half_h) * scale + offset - 10,
+                x = (cx - half_w) * scale + offset[0] - 10,
+                y = (cy - half_h) * scale + offset[1] - 10,
                 width = self.size[0] * scale + 20,
                 height = self.size[1] * scale + 20,
                 color = b255,
                 batch = scene
             )
             self.square_shape = shapes.Rectangle(
-                x = (cx - half_w) * scale + offset,
-                y = (cy - half_h) * scale + offset,
+                x = (cx - half_w) * scale + offset[0],
+                y = (cy - half_h) * scale + offset[1],
                 width = self.size[0] * scale,
                 height = self.size[1] * scale,
                 color = c255,
                 batch = scene
             )
             self.line_shape = shapes.Line(
-                x = cx * scale + offset,
-                y = cy * scale + offset,
-                x2 = cx * scale + offset,
-                y2 = (cy + 2) * scale + offset,
+                x = cx * scale + offset[0],
+                y = cy * scale + offset[1],
+                x2 = cx * scale + offset[0],
+                y2 = (cy + 2) * scale + offset[1],
                 width = 10,
                 color = c255,
                 batch = scene
             )
         else:
-            self.border_shape.x = (cx - half_w) * scale + offset - 10
-            self.border_shape.y = (cy - half_h) * scale + offset - 10
+            self.border_shape.x = (cx - half_w) * scale + offset[0] - 10
+            self.border_shape.y = (cy - half_h) * scale + offset[1] - 10
             self.border_shape.color = b255
             
-            self.square_shape.x = (cx - half_w) * scale + offset
-            self.square_shape.y = (cy - half_h) * scale + offset
+            self.square_shape.x = (cx - half_w) * scale + offset[0]
+            self.square_shape.y = (cy - half_h) * scale + offset[1]
             self.square_shape.color = c255
             
-            self.line_shape.x = cx * scale + offset
-            self.line_shape.y = cy * scale + offset
-            self.line_shape.x2 = cx * scale + offset
-            self.line_shape.y2 = (cy + 2) * scale + offset
+            self.line_shape.x = cx * scale + offset[0]
+            self.line_shape.y = cy * scale + offset[1]
+            self.line_shape.x2 = cx * scale + offset[0]
+            self.line_shape.y2 = (cy + 2) * scale + offset[1]
             self.line_shape.color = c255
 
     def move(self, dx, dy):

@@ -80,7 +80,9 @@ class DefObject:
     def _update_line_buffer(self, scale, offset):
         line_indices = [(i1, j1, i2, j2) for (i1, j1), (i2, j2), _ in self.edges]
         i, j, k, l = np.array(line_indices).T
-        lines = np.hstack([self.x[i,j], self.x[k,l]]) * scale + offset
+        p1 = self.x[i, j] * scale + offset
+        p2 = self.x[k, l] * scale + offset
+        lines = np.hstack([p1, p2])
         self._line_positions[:] = lines.reshape(-1, 2)
 
     def reset_pos(self):

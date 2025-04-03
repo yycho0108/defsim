@@ -71,8 +71,8 @@ class ClawSimulation(Simulation):
         
         if self.claw and self.claw.active:
             claw_pos = self.claw.center
-            claw_screen = (claw_pos[0] * self.scale + self.offset, 
-                        claw_pos[1] * self.scale + self.offset)
+            claw_screen = (claw_pos[0] * self.scale + self.offset[0], 
+                        claw_pos[1] * self.scale + self.offset[1])
             
             # Enable transparency
             pyglet.gl.glEnable(pyglet.gl.GL_BLEND)
@@ -83,8 +83,8 @@ class ClawSimulation(Simulation):
                     p = self.def_object.p[i, j]
                     dist = np.linalg.norm(p - claw_pos)
                     if dist < self.attract_radius:
-                        p_screen = (p[0] * self.scale + self.offset, 
-                                    p[1] * self.scale + self.offset)
+                        p_screen = (p[0] * self.scale + self.offset[0], 
+                                    p[1] * self.scale + self.offset[1])
                         
                         # RGBA color (red with 50% opacity)
                         color = (0, 0, 0, 10)

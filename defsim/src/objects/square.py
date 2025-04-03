@@ -32,16 +32,16 @@ class Square(Object):
         if not hasattr(self, 'square_shape'):
             c255 = tuple(int(c * 255) for c in self.color)
             self.square_shape = shapes.Rectangle(
-                x = (cx - half_w) * scale + offset,
-                y = (cy - half_h) * scale + offset,
+                x = (cx - half_w) * scale + offset[0],
+                y = (cy - half_h) * scale + offset[1],
                 width = self.size[0] * scale,
                 height = self.size[1] * scale,
                 color = c255,
                 batch = scene
             )
         else:
-            self.square_shape.x = (cx - half_w) * scale + offset
-            self.square_shape.y = (cy - half_h) * scale + offset
+            self.square_shape.x = (cx - half_w) * scale + offset[0]
+            self.square_shape.y = (cy - half_h) * scale + offset[1]
 
     """
     @OVERRIDE

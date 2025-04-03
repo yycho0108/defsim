@@ -16,7 +16,7 @@ class Simulation:
         res: tuple(width, height)
             window size in pixels
     """
-    def __init__(self, name, gravity=-10, dt=0.005, window_size=1500, world_size=2.0, iterations=5, self_collision=True):
+    def __init__(self, name, gravity=-10, dt=0.005, window_size=(1500, 1500), world_size=2.0, iterations=5, self_collision=True):
         # simulation properties
         self.name = name
         self.GRAVITY = gravity
@@ -26,10 +26,11 @@ class Simulation:
         self.self_collision = self_collision
 
         # window properties
-        self.world_size = world_size
-        self.scale = window_size / world_size
-        self.offset = window_size // 2
-        self.window = pyglet.window.Window(window_size, window_size, self.name)
+        self.scale = window_size[1] / world_size  # adjust scale to window height
+        self.offset = [window_size[0] // 2, window_size[1] // 2]
+        self.world_width = window_size[0] / self.scale
+        self.world_height = window_size[1] / self.scale
+        self.window = pyglet.window.Window(window_size[0], window_size[1], self.name)
         pyglet.gl.glClearColor(1,1,1,1)
 
         # objects on the scene

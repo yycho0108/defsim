@@ -31,15 +31,15 @@ class Circle(Object):
         if not hasattr(self, 'circle_shape'):
             r255 = tuple(int(c * 255) for c in self.color)
             self.circle_shape = shapes.Circle(
-                x = x * scale + offset,
-                y = y * scale + offset,
+                x = x * scale + offset[0],
+                y = y * scale + offset[1],
                 radius = self.radius * scale,
                 color = r255,
                 batch = scene
             )
         else:
-            self.circle_shape.x = x * scale + offset
-            self.circle_shape.y = y * scale + offset
+            self.circle_shape.x = x * scale + offset[0]
+            self.circle_shape.y = y * scale + offset[1]
     
     """
     @OVERRIDE
