@@ -4,7 +4,7 @@ import numpy as np
 import pyglet
 
 class DefObject:
-    def __init__(self, num, spacing, origin, line_color=(0, 0, 0), point_color=(0.5, 0.5, 0.5), KS=1.0, KC=1.0, DAMPING=0.9):
+    def __init__(self, num, spacing, origin, line_color=(0, 0, 0), point_color=(0.5, 0.5, 0.5), KS=1.0, KC=1.0):
         self.num_x = num[0]
         self.num_y = num[1]
         self.spacing = spacing
@@ -14,7 +14,6 @@ class DefObject:
         self.point_color = point_color
         self.KS = KS   # Stretch
         self.KC = KC   # Collision
-        self.DAMPING = DAMPING
 
         self.x = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # positions
         self.p = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # predicted positions
@@ -97,7 +96,8 @@ class DefObject:
     def external_forces(self, G, wind, DT):
         self.dv[:, :, 1] += G * DT
         self.dv += wind * DT
-        self.v += self.DAMPING * self.dv
+        self.v += self.dv # * DT
+        # self.dv.fill(0)
 
     def make_predictions(self, DT):
         self.p = self.x + DT * self.v
