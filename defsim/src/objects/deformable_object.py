@@ -18,7 +18,7 @@ class DefObject:
         self.x = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # positions
         self.p = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # predicted positions
         self.v = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # velocities
-        self.dv = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)           # delta velocities
+        self.a = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # acceleration
         self.reset_pos()
                 
         # initialize stretch constraints
@@ -101,20 +101,13 @@ class DefObject:
                 self.p[i, j] = self.x[i, j]
                 self.v[i, j] = np.zeros(2, dtype=np.float32)
 
-
-    def external_forces(self, G, WIND, DT):
-        # self.dv.fill(0)
-        self.dv[:, :, 1] += G * DT
-        self.dv += WIND * DT
-        self.v += self.dv
-
     def set_make_predictions_func(self, func):
         self.make_predictions_func = func
 
-    def make_predictions(self, DT):
+    def make_predictions(self, G, DT):
         # copy to avoid modifying in place
         if self.make_predictions_func is not None:
-            self.p = self.make_predictions_func(self.x.copy(), self.v.copy(), DT)
+            self.p, self.v, self.a = self.make_predictions_func(self.x.copy(), self.v.copy(), self.a.copy(), G, DT)
 
     def set_apply_correction_func(self, func):
         self.apply_correction_func = func

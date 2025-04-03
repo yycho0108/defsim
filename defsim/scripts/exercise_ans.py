@@ -68,18 +68,22 @@ def main(cfg: AppConfig = AppConfig()):
     PBD with rigid object
     """
 
-    def make_predictions_func(x: np.ndarray, v: np.ndarray, dt: float) -> np.ndarray:
+    def make_predictions_func(x: np.ndarray, v: np.ndarray, a: np.ndarray, G: float, dt: float) -> np.ndarray:
         """
         @param x: current positions
         @param v: current velocities
+        @param a: current accelerations
+        @param G: gravity
         @param dt: time step
 
-        @return: predicted positions
+        @return: tuple of predicted positions, velocities, and accelerations
         """
 
+        a[:, :, 1] += G * dt
+        v += a
         p = x + dt * v
 
-        return p
+        return p, v, a
 
     def apply_correction_func(x: np.ndarray, p: np.ndarray, dt: float) -> tuple[np.ndarray, np.ndarray]:
         """
