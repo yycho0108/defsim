@@ -10,7 +10,7 @@ class AppConfig(Config):
     window_size: tuple[int, int] = (2000, 1500)
     dt: float = 0.0005
     iterations:int = 5
-    self_collision: bool = False
+    self_collision: bool = True
 
 
 @zen_cli
