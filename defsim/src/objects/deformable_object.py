@@ -78,6 +78,8 @@ class DefObject:
         pyglet.gl.glLineWidth(5)
 
     def _update_line_buffer(self, scale, offset):
+        if (len(self.edges) == 0):
+            return
         line_indices = [(i1, j1, i2, j2) for (i1, j1), (i2, j2), _ in self.edges]
         i, j, k, l = np.array(line_indices).T
         p1 = self.x[i, j] * scale + offset

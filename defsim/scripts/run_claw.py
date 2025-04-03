@@ -10,7 +10,7 @@ class AppConfig(Config):
     window_size: tuple[int, int] = (2000, 1500)
     dt: float = 0.0005
     iterations:int = 5
-    self_collision: bool = True
+    self_collision: bool = False
 
 
 @zen_cli
@@ -27,7 +27,7 @@ def main(cfg: AppConfig = AppConfig()):
     sim.add_claw(claw)
     
     # set doll
-    doll = DefObject(num=(5, 5), spacing=0.05, origin=(-0.5, -0.8), KS=1.0, KC=1.0)
+    doll = DefObject(num=(1, 1), spacing=0.1, origin=(-0.5, -0.8), KS=1.0, KC=1.0)
     # doll = DefObject(num=(5, 5), spacing=0.05, origin=(-0.5, -0.8), KS=0.5, KC=1.0)
     sim.set_def_object(doll)
 
