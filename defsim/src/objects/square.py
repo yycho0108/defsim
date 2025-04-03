@@ -2,7 +2,7 @@
 
 import numpy as np
 from pyglet import shapes
-from .Object import Object
+from .object import Object
 
 class Square(Object):
     """

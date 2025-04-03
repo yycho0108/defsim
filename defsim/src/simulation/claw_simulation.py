@@ -2,7 +2,7 @@ import numpy as np
 import pyglet
 from pyglet import shapes
 from pyglet.window import key
-from .Simulation import Simulation
+from .simulation import Simulation
 
 class ClawSimulation(Simulation):
     def __init__(self, name, **kwargs):

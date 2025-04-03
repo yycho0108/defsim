@@ -1,17 +1,26 @@
-# scripts/single_obj.py
+from dataclasses import dataclass
 
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+from simulation import Simulation
+from objects import Line, DefObject
+from infra.render import Config
+from infra.config import zen_cli
 
-from simulation.Simulation import Simulation
-from defobjects.DefObject import DefObject
-from objects.Line import Line
-from objects.Square import Square
-from objects.Circle import Circle
+@dataclass
+class AppConfig(Config):
+    window_size: int = 300
+    dt: float = 0.0005
+    iterations:int = 5
+    self_collision: bool = True
 
-def main():
-    sim = Simulation("single object", dt=0.0005, iterations=5, selfCollision=True)
+@zen_cli
+def main(cfg: AppConfig = AppConfig()):
+    sim = Simulation(
+        "single object",
+        dt=cfg.dt,
+        iterations=cfg.iterations,
+        window_size=cfg.window_size,
+        self_collision=cfg.self_collision
+    )
     
     # set def_obj
     def_obj = DefObject(num=(5, 5), spacing=0.05, origin=(0.0, 0.0), KS=1.0, KC=1.0)

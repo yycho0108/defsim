@@ -16,14 +16,14 @@ class Simulation:
         res: tuple(width, height)
             window size in pixels
     """
-    def __init__(self, name, gravity=-10, dt=0.005, window_size=1500, world_size=2.0, iterations=5, selfCollision=True):
+    def __init__(self, name, gravity=-10, dt=0.005, window_size=1500, world_size=2.0, iterations=5, self_collision=True):
         # simulation properties
         self.name = name
         self.GRAVITY = gravity
         self.DT = dt
         self.NUM_ITERATIONS = iterations
         self.WIND = np.array([0.0, 0.0], dtype=np.float32)
-        self.selfCollision = selfCollision
+        self.self_collision = self_collision
 
         # window properties
         self.world_size = world_size
@@ -77,7 +77,7 @@ class Simulation:
                 
             self.def_object.solve_stretching_constraint(self.NUM_ITERATIONS)
             
-            if self.selfCollision:
+            if self.self_collision:
                 self.def_object.solve_self_collision_constraints(self.NUM_ITERATIONS)
                 
         self.def_object.apply_correction(self.DT)

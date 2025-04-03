@@ -1,18 +1,27 @@
-# scripts/run_claw.py
+from dataclasses import dataclass
 
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+from infra.render import Config
+from infra.config import zen_cli
+from simulation import ClawSimulation
+from objects import Line, Square, Circle, Claw, DefObject
 
-from simulation.ClawSimulation import ClawSimulation
-from defobjects.DefObject import DefObject
-from objects.Line import Line
-from objects.Square import Square
-from objects.Circle import Circle
-from objects.Claw import Claw
+@dataclass
+class AppConfig(Config):
+    window_size: int = 300
+    dt: float = 0.0005
+    iterations:int = 5
+    self_collision: bool = True
 
-def main():
-    sim = ClawSimulation("claw machine", dt=0.0005, iterations=5, selfCollision=True)
+
+@zen_cli
+def main(cfg: AppConfig = AppConfig()):
+    sim = ClawSimulation(
+        "claw machine",
+        dt=cfg.dt,
+        iterations=cfg.iterations,
+        self_collision=cfg.self_collision,
+        window_size=cfg.window_size
+    )
     
     claw = Claw(center=(-0.5, 0.0), size=(0.6, 0.2), color=(0, 0, 0))
     sim.add_claw(claw)

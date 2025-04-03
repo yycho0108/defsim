@@ -1,8 +1,8 @@
 import numpy as np
 from pyglet import shapes
-from .Circle import Circle
-from .Square import Square
-from .Line import Line
+from .circle import Circle
+from .square import Square
+from .line import Line
 
 class Claw(Square):
     def __init__(self, center, size, color=(0, 0, 0)):
