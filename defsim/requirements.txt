@@ -1,0 +1,2 @@
+pyglet==1.5.29
+hydra_zen==0.14.0
