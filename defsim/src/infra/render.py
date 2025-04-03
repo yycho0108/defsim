@@ -7,7 +7,7 @@ from functools import partial
 import pyglet
 from pyglet import shapes
 
-from ds.infra.common import ObjectState, SimState
+from .common import ObjectState, SimState
 
 
 @dataclass
