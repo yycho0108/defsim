@@ -12,14 +12,14 @@ from objects.Circle import Circle
 from objects.Claw import Claw
 
 def main():
-    sim = ClawSimulation("claw machine", dt=0.001, iterations=5, selfCollision=True)
+    sim = ClawSimulation("claw machine", dt=0.0005, iterations=5, selfCollision=True)
     
     claw = Claw(center=(-0.5, 0.0), size=(0.6, 0.2), color=(0, 0, 0))
     sim.add_claw(claw)
     
     # set doll
     # doll = DefObject(num=(5, 5), spacing=0.05, origin=(-0.5, -0.8), KS=1.0, KC=1.0)
-    doll = DefObject(num=(5, 5), spacing=0.05, origin=(-0.5, -0.8), KS=0.8, KC=1.0)
+    doll = DefObject(num=(5, 5), spacing=0.05, origin=(-0.5, -0.8), KS=0.5, KC=1.0)
     sim.set_def_object(doll)
 
     # add walls
