@@ -7,7 +7,7 @@ from infra.config import zen_cli
 
 @dataclass
 class AppConfig(Config):
-    window_size: int = 300
+    window_size: tuple[int, int] = (1000, 750)
     dt: float = 0.0005
     iterations:int = 5
     self_collision: bool = True
