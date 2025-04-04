@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import numpy as np
-
+  
 from infra.render import Config
 from infra.config import zen_cli
 from simulation import ClawSimulation
@@ -65,7 +65,7 @@ def main(cfg: AppConfig = AppConfig()):
     sim.set_def_object(doll)
 
     """
-    PBD with rigid object
+    PBD with rigid object.
     """
 
     def make_predictions_func(x: np.ndarray, v: np.ndarray, a: np.ndarray, G: float, dt: float) -> np.ndarray:

@@ -116,7 +116,7 @@ class DefObject:
         self.make_predictions_func = func
 
     def make_predictions(self, G, DT):
-        # copy to avoid modifying in place
+        # copy to avoid modifying in place.
         if self.make_predictions_func is not None:
             self.p, self.v, self.a = self.make_predictions_func(self.x.copy(), self.v.copy(), self.a.copy(), G, DT)
 
@@ -163,3 +163,4 @@ class DefObject:
     def solve_self_collision_constraints(self, iterations):
         if self.solve_self_collision_constraints_func is not None:
             self.p = self.solve_self_collision_constraints_func(self.p.copy(), self.collision_radius, self.KC)
+  
