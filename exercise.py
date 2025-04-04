@@ -70,9 +70,9 @@ def main(cfg: AppConfig = AppConfig()):
 
     def make_predictions_func(x: np.ndarray, v: np.ndarray, a: np.ndarray, G: float, dt: float) -> np.ndarray:
         """
-        @param x: current positions
-        @param v: current velocities
-        @param a: current accelerations
+        @param x: current positions     (shape: (num_x, num_y, 2))
+        @param v: current velocities    (shape: (num_x, num_y, 2))
+        @param a: current accelerations (shape: (num_x, num_y, 2))
         @param G: gravity
         @param dt: time step
 
@@ -91,8 +91,8 @@ def main(cfg: AppConfig = AppConfig()):
 
     def apply_correction_func(x: np.ndarray, p: np.ndarray, dt: float) -> tuple[np.ndarray, np.ndarray]:
         """
-        @param x: current positions
-        @param p: predicted positions
+        @param x: current positions     (shape: (num_x, num_y, 2))
+        @param p: predicted positions   (shape: (num_x, num_y, 2))
         @param dt: time step
 
         @return: tuple of corrected positions and velocities
@@ -117,7 +117,7 @@ def main(cfg: AppConfig = AppConfig()):
 
     def solve_stretching_constraint_func(p: np.ndarray, edges:list, KS: float) -> np.ndarray:
         """
-        @param p: predicted positions
+        @param p: predicted positions   (shape: (num_x, num_y, 2))
         @param edges: edges of the deformable object. rest_len is the rest length of the edge
         @param KS: stretching stiffness
 
@@ -135,7 +135,7 @@ def main(cfg: AppConfig = AppConfig()):
 
     def solve_self_collision_constraints_func(p: np.ndarray, collision_radius: float, KC: float) -> np.ndarray:
         """
-        @param p: predicted positions
+        @param p: predicted positions   (shape: (num_x, num_y, 2))
         @param collision_radius: collision radius
         @param KC: collision stiffness
 

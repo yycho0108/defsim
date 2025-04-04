@@ -79,8 +79,8 @@ def main(cfg: AppConfig = AppConfig()):
         @return: tuple of predicted positions, velocities, and accelerations
         """
 
-        a[:, :, 1] += G * dt
-        v += a
+        a[:, :, 1] += G
+        v += a * dt
         p = x + dt * v
 
         return p, v, a
@@ -127,10 +127,10 @@ def main(cfg: AppConfig = AppConfig()):
                 continue
             n = delta / curr_len
             
-            lagrange = (curr_len - rest_len) / 2
+            correction = (curr_len - rest_len) * n * 0.5
             
-            p_new[i1, j1] += KS * lagrange * n
-            p_new[i2, j2] -= KS * lagrange * n
+            p_new[i1, j1] += KS * correction
+            p_new[i2, j2] -= KS * correction
 
         return p_new
 
@@ -158,10 +158,6 @@ def main(cfg: AppConfig = AppConfig()):
                     for j2 in range(num_y):
                         # Skip self
                         if i == i2 and j == j2:
-                            continue
-                        
-                        # Skip immediate neighbors (connected by constraints)
-                        if (abs(i - i2) <= 1 and abs(j - j2) <= 1):
                             continue
                         
                         p2 = p_new[i2, j2]
