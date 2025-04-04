@@ -4,7 +4,7 @@ import numpy as np
 import pyglet
 
 class DefObject:
-    def __init__(self, num, spacing, origin, line_color=(0, 0, 0), point_color=(0.5, 0.5, 0.5), KS=1.0, KC=1.0):
+    def __init__(self, num, spacing, origin, line_color=(0, 0, 0), point_color=(0.5, 0.5, 0.5), KS=1.0, KC=1.0, type='hexagon'):
         self.num_x = num[0]
         self.num_y = num[1]
         self.spacing = spacing
@@ -14,6 +14,7 @@ class DefObject:
         self.point_color = point_color
         self.KS = KS   # Stretch
         self.KC = KC   # Collision
+        self.type = type  # Shape type: "hexagon" or "rectangle"
 
         self.x = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # positions
         self.p = np.zeros((self.num_x, self.num_y, 2), dtype=np.float32)            # predicted positions
@@ -22,6 +23,7 @@ class DefObject:
         self.reset_pos()
                 
         # initialize stretch constraints
+        self.edges = []
         self.build_edges()
         
         # draw buffers
@@ -97,7 +99,16 @@ class DefObject:
         offset_y = (self.num_y - 1) * self.spacing / 2
         for i in range(self.num_x):
             for j in range(self.num_y):
-                self.x[i, j] = self.origin + np.array([i * self.spacing, j * self.spacing]) - np.array([offset_x, offset_y])
+                if self.type == "hexagon":
+                    # 육각형 배치
+                    if i + j <= ((self.num_x / 2) - 1) or i + j >= (1.5 * self.num_x) - 1:
+                        self.x[i, j] = [100000, 100000]
+                        self.p[i, j] = self.x[i, j]
+                        continue
+                    self.x[i, j] = self.origin + np.array([(i + (j / 2)) * self.spacing, j * (3**0.5) / 2 * self.spacing]) - np.array([offset_x, offset_y])
+                elif self.type == "rectangle":
+                    # 사각형 배치
+                    self.x[i, j] = self.origin + np.array([i * self.spacing, j * self.spacing]) - np.array([offset_x, offset_y])
                 self.p[i, j] = self.x[i, j]
                 self.v[i, j] = np.zeros(2, dtype=np.float32)
 
@@ -118,30 +129,18 @@ class DefObject:
             self.x, self.v = self.apply_correction_func(self.x.copy(), self.p.copy(), DT)
                 
     def build_edges(self):
-        self.edges = []
-        for i in range(self.num_x):
-            for j in range(self.num_y):
-                if i < self.num_x - 1:
-                    p1 = self.x[i, j]
-                    p2 = self.x[i+1, j]
-                    rest_len = np.linalg.norm(p2 - p1)
-                    self.edges.append(((i, j), (i+1, j), rest_len))
-                if j < self.num_y - 1:
-                    p1 = self.x[i, j]
-                    p2 = self.x[i, j+1]
-                    rest_len = np.linalg.norm(p2 - p1)
-                    self.edges.append(((i, j), (i, j+1), rest_len))
-                # Diagonal constraints for shape preservation
-                if i < self.num_x - 1 and j < self.num_y - 1:
-                    p1 = self.x[i, j]
-                    p2 = self.x[i+1, j+1]
-                    rest_len = np.linalg.norm(p2 - p1)
-                    self.edges.append(((i, j), (i+1, j+1), rest_len))
-                if i < self.num_x - 1 and j > 0:
-                    p1 = self.x[i, j]
-                    p2 = self.x[i+1, j-1]
-                    rest_len = np.linalg.norm(p2 - p1)
-                    self.edges.append(((i, j), (i+1, j-1), rest_len))
+        max_dist = 3 * self.collision_radius  # Maximum distance for connection
+        for i1 in range(self.num_x):
+            for j1 in range(self.num_y):
+                p1 = self.x[i1, j1]
+                for i2 in range(self.num_x):
+                    for j2 in range(self.num_y):
+                        if i1 == i2 and j1 == j2:
+                            continue  # Skip self
+                        p2 = self.x[i2, j2]
+                        dist = np.linalg.norm(p2 - p1)
+                        if dist <= max_dist:  # Connect if within scaled radius
+                            self.edges.append(((i1, j1), (i2, j2), dist))
 
     def set_solve_stretching_constraint_func(self, func):
         self.solve_stretching_constraint_func = func
